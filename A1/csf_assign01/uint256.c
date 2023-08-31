@@ -9,7 +9,10 @@
 // all other bits are set to 0.
 UInt256 uint256_create_from_u32(uint32_t val) {
   UInt256 result;
-  // TODO: implement
+  result.data[0] = &val;
+  for(int i = 1; i < 8; i++) {
+    result.data[i] = 0;
+  }
   return result;
 }
 
@@ -18,15 +21,27 @@ UInt256 uint256_create_from_u32(uint32_t val) {
 // at index 3 is the most significant.
 UInt256 uint256_create(const uint32_t data[8]) {
   UInt256 result;
-  // TODO: implement
+  for(int i = 0; i < 8; i++) {
+    result.data[i] = data[i];
+  }
   return result;
 }
 
 // Create a UInt256 value from a string of hexadecimal digits.
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
-  // TODO: implement
+  int val = hex_to_decimal(*hex);
+  
   return result;
+}
+
+//hex to int converter
+int hex_to_int(char *hex) {
+  int value = 0;
+  for (int i = 0; hex[i] != '\0'; i++) {
+    value = value * 16 + (hex[i] - '0');
+  }
+  return value;
 }
 
 // Return a dynamically-allocated string of hex digits representing the
