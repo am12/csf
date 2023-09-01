@@ -32,7 +32,7 @@ UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
 
   char*    buf = (char*) malloc(sizeof(char*) * 9);
-  uint32_t val = /* some value */;
+  uint32_t val = ;
 
   sprintf(buf, "%x", val);   // format without leading 0s
 
@@ -63,7 +63,6 @@ char *uint256_format_as_hex(UInt256 val) {
 // significant 32 bits.
 uint32_t uint256_get_bits(UInt256 val, unsigned index) {
   uint32_t bits;
-  // TODO: implement
   bits = val.data[index];
   return bits;
 }
