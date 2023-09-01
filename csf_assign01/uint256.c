@@ -30,32 +30,53 @@ UInt256 uint256_create(const uint32_t data[8]) {
 // Create a UInt256 value from a string of hexadecimal digits.
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
+  int index = 0;
+  char *end = hex; // navigate to the end of the string
+  while (*end != '\0') {
+    end++;
+  }
+  while ((end > hex) || index > 8) { // get chunks of 8 hex digits (until reaching start of hex string or UInt256 is filled)
+    char *start = end-8;
+    if (start < hex) { // if substring reaches before string starts, move it back to where it should start
+      start = hex;
+    }
+    char *tmp;
+    result.data[index] = (uint32_t) strtoul(start, &tmp, 16); // convert index to 
+    *start = '\t'; // change first letter to unreadable char so strtoul stops here next iteration
+    end = start;
+    index++;
+  }
 
-  char*    buf = (char*) malloc(sizeof(char*) * 9);
-  uint32_t val = ;
-
-  sprintf(buf, "%x", val);   // format without leading 0s
-
-  sprintf(buf, "%08x", val); // format with leading 0s
-  
   return result;
 }
 
-//hex to int converter
-int hex_to_int(char *hex) {
-  int value = 0;
-  for (int i = 0; hex[i] != '\0'; i++) {
-    value = value * 16 + (hex[i] - '0');
-  }
-  return value;
-}
+// //hex to int converter
+// int hex_to_int(char *hex) {
+//   int value = 0;
+//   for (int i = 0; hex[i] != '\0'; i++) {
+//     value = value * 16 + (hex[i] - '0');
+//   }
+//   return value;
+// }
 
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
   char *hex = NULL;
   // TODO: implement
-  return hex;
+
+  // char    *buf = (char*) malloc(sizeof(char*) * 9);
+  // uint32_t val;
+
+  // while (*hex != '\0') {
+    
+  // }
+
+  // sprintf(buf, "%x", val);   // format without leading 0s
+
+  // sprintf(buf, "%08x", val); // format with leading 0s
+
+  // return hex;
 }
 
 // Get 32 bits of data from a UInt256 value.
