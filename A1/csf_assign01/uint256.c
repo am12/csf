@@ -30,7 +30,13 @@ UInt256 uint256_create(const uint32_t data[8]) {
 // Create a UInt256 value from a string of hexadecimal digits.
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
-  int val = hex_to_decimal(*hex);
+
+  char*    buf = (char*) malloc(sizeof(char*) * 9);
+  uint32_t val = /* some value */;
+
+  sprintf(buf, "%x", val);   // format without leading 0s
+
+  sprintf(buf, "%08x", val); // format with leading 0s
   
   return result;
 }
