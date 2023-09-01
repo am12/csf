@@ -9,8 +9,8 @@
 // all other bits are set to 0.
 UInt256 uint256_create_from_u32(uint32_t val) {
   UInt256 result;
-  result.data[0] = &val;
-  for(int i = 1; i < 8; i++) {
+  result.data[0] = val; // least significant bit is a uint32_t
+  for(int i = 1; i < 8; i++) { // all other bits are 0
     result.data[i] = 0;
   }
   return result;
@@ -58,6 +58,7 @@ char *uint256_format_as_hex(UInt256 val) {
 uint32_t uint256_get_bits(UInt256 val, unsigned index) {
   uint32_t bits;
   // TODO: implement
+  bits = val.data[index];
   return bits;
 }
 
