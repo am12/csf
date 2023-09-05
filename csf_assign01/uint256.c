@@ -40,14 +40,31 @@ UInt256 uint256_create_from_hex(const char *hex) {
     if (start < hex) { // if substring reaches before string starts, move it back to where it should start
       start = hex;
     }
-    char *tmp;
-    result.data[index] = (uint32_t) strtoul(start, &tmp, 16); // convert index to 
-    *start = '\t'; // change first letter to unreadable char so strtoul stops here next iteration
+    result.data[index] = hex_to_ul(start, end); // convert hex string to unsigned long
     end = start;
     index++;
   }
-
+  for (int i=0; i<8; i++) {
+    printf("Unsigned Long: %u\n", result.data[i]);
+  }
   return result;
+}
+
+// Takes 8-character hex string and converts to unsigned long.
+uint32_t hex_to_ul(char *start, char *end) {
+  uint32_t sum = 0;
+  uint32_t value;
+  for (int i=0; i<(end-start); i++) {
+    if (isdigit(start[i])) {
+      value = start[i] - '0';
+    } else if (start[i] >= 'a' && start[i] <= 'f') {
+      value = 10 + start[i] - 'a';
+    } else if (start[i] >= 'A' && start[i] <= 'F') {
+      value = 10 + start[i] - 'A';
+    }
+    sum = (sum << 4) | value; // effectively adds digits by powers of 16
+  }
+  return sum;
 }
 
 // Return a dynamically-allocated string of hex digits representing the
