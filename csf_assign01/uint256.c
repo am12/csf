@@ -50,15 +50,6 @@ UInt256 uint256_create_from_hex(const char *hex) {
   return result;
 }
 
-// //hex to int converter
-// int hex_to_int(char *hex) {
-//   int value = 0;
-//   for (int i = 0; hex[i] != '\0'; i++) {
-//     value = value * 16 + (hex[i] - '0');
-//   }
-//   return value;
-// }
-
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
