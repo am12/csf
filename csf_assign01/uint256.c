@@ -35,7 +35,7 @@ UInt256 uint256_create_from_hex(const char *hex) {
   while (*end != '\0') {
     end++;
   }
-  while ((end > hex) || index > 8) { // get chunks of 8 hex digits (until reaching start of hex string or UInt256 is filled)
+  while ((end > hex) || index < 8) { // get chunks of 8 hex digits (until reaching start of hex string or UInt256 is filled)
     char *start = end-8;
     if (start < hex) { // if substring reaches before string starts, move it back to where it should start
       start = hex;
@@ -44,9 +44,13 @@ UInt256 uint256_create_from_hex(const char *hex) {
     end = start;
     index++;
   }
-  for (int i=0; i<8; i++) {
-    printf("Unsigned Long: %u\n", result.data[i]);
+  while (index < 8) { // all other bits (if unfilled) get assigned 0
+    result.data[index] = 0;
   }
+  // DEBUG
+  // for (int i=0; i<8; i++) {
+  //   printf("Unsigned Long: %u\n", result.data[i]);
+  // }
   return result;
 }
 
