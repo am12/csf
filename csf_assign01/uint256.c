@@ -31,12 +31,12 @@ UInt256 uint256_create(const uint32_t data[8]) {
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
   int index = 0;
-  char *end = hex; // navigate to the end of the string
+  const char *end = hex; // navigate to the end of the string
   while (*end != '\0') {
     end++;
   }
   while ((end > hex) || index < 8) { // get chunks of 8 hex digits (until reaching start of hex string or UInt256 is filled)
-    char *start = end-8;
+    const char *start = end-8;
     if (start < hex) { // if substring reaches before string starts, move it back to where it should start
       start = hex;
     }
@@ -47,19 +47,15 @@ UInt256 uint256_create_from_hex(const char *hex) {
   while (index < 8) { // all other bits (if unfilled) get assigned 0
     result.data[index] = 0;
   }
-  // DEBUG
-  // for (int i=0; i<8; i++) {
-  //   printf("Unsigned Long: %u\n", result.data[i]);
-  // }
   return result;
 }
 
 // Takes 8-character hex string and converts to unsigned long.
-uint32_t hex_to_ul(char *start, char *end) {
+uint32_t hex_to_ul(const char *start, const char *end) {
   uint32_t sum = 0;
   uint32_t value;
   for (int i=0; i<(end-start); i++) {
-    if (isdigit(start[i])) {
+    if (start[i] >= '0' && start[i] <= '9') {
       value = start[i] - '0';
     } else if (start[i] >= 'a' && start[i] <= 'f') {
       value = 10 + start[i] - 'a';
@@ -74,21 +70,47 @@ uint32_t hex_to_ul(char *start, char *end) {
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
-  char *hex = NULL;
-  // TODO: implement
+  char *hex = (char *) malloc(sizeof(char) * 9); // starting size
+  char *buf = hex;
+  int resize;
+  
+  for (int i=7; i>=0; i--) {
+    uint32_t cur = val.data[i];
+    buf[8] = '\0'; // MAY DELETE
+    sprintf(buf, "%08x", cur); // format with leading 0s
+    if (i>0) {
+      resize = 8 * (9-i) + 1;
+      hex = (char *) realloc(hex, sizeof(char) * resize);
+    }
+    buf = buf + 8;
+  }
 
-  // char    *buf = (char*) malloc(sizeof(char*) * 9);
-  // uint32_t val;
-
-  // while (*hex != '\0') {
-    
-  // }
+  // DEBUG
+  printf("\n");
+  for (int i=0; i<resize; i++) {
+    printf("%c", hex[i]);
+  }
 
   // sprintf(buf, "%x", val);   // format without leading 0s
-
   // sprintf(buf, "%08x", val); // format with leading 0s
 
-  // return hex;
+  // ensure that the outputted hex string has no leading 0s
+  char *start = hex;
+  int finalSize = resize;
+  while (*start == '0' && start < buf-1) {
+    finalSize--;
+    start++;
+  }
+  memmove(hex, start, finalSize);
+  printf("\nALI%d", finalSize);
+  hex = (char *) realloc(hex, sizeof(char) * finalSize);
+
+  // DEBUG
+  for (int i=0; i<finalSize; i++) {
+    printf("%c", hex[i]);
+  }
+
+  return hex;
 }
 
 // Get 32 bits of data from a UInt256 value.

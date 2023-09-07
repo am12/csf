@@ -25,7 +25,7 @@ UInt256 uint256_create_from_u32(uint32_t val);
 UInt256 uint256_create(const uint32_t data[8]);
 
 // Converts hex to unsigned long
-uint32_t hex_to_ul(char *start, char *end);
+uint32_t hex_to_ul(const char *start, const char *end);
 
 // Create a UInt256 value from a string of hexadecimal digits.
 UInt256 uint256_create_from_hex(const char *hex);
