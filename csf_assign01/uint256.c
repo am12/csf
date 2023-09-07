@@ -85,15 +85,6 @@ char *uint256_format_as_hex(UInt256 val) {
     buf = buf + 8;
   }
 
-  // DEBUG
-  printf("\n");
-  for (int i=0; i<resize; i++) {
-    printf("%c", hex[i]);
-  }
-
-  // sprintf(buf, "%x", val);   // format without leading 0s
-  // sprintf(buf, "%08x", val); // format with leading 0s
-
   // ensure that the outputted hex string has no leading 0s
   char *start = hex;
   int finalSize = resize;
@@ -102,13 +93,7 @@ char *uint256_format_as_hex(UInt256 val) {
     start++;
   }
   memmove(hex, start, finalSize);
-  printf("\nALI%d", finalSize);
   hex = (char *) realloc(hex, sizeof(char) * finalSize);
-
-  // DEBUG
-  for (int i=0; i<finalSize; i++) {
-    printf("%c", hex[i]);
-  }
 
   return hex;
 }
