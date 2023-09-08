@@ -198,17 +198,19 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
   uint32_t carry = 0;
   for (int i = 0; i < 8; i++) {
-    uint32_t cleft = left[i];
-    uint32_t cright = right[i];
-    sum = cleft + cright + carry;
-    if (sum < cleft) {
+    uint32_t cleft = left.data[i];
+    uint32_t cright = right.data[i];
+    uint32_t csum;
+    csum = cleft + cright + carry;
+    if (csum < cleft) {
       carry = 1;
     } else {
       carry = 0; 
     }
-    if ((i = 7) and (carry != 0)) {
-      sum = 0;
+    if ((i = 7) && (carry != 0)) {
+      sum.data[i] = 0;
     }
+    sum.data[i] = csum;
   }
   return sum;
 }
@@ -245,7 +247,7 @@ UInt256 uint256_sub(UInt256 left, UInt256 right) {
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
   for (int i =0; i < 9; i++) {
-    result[i] = ~val[i]+1;
+    result.data[i] = ~val.data[i]+1;
   }
   return result;
 }
