@@ -262,6 +262,11 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
   // TODO: implement
+  // format as hex
+  // convert to binary with leading 0
+  // shift all bits right, save the overflow (array allocate size is equal to nbits)
+  // shift overflow left by 256-nbits
+  // add them together
   
 
   return result;
