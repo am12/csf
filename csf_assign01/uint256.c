@@ -132,15 +132,11 @@ char *uint256_format_as_hex(UInt256 val) {
     //printf("\ncur %u", cur);
     //printf("\nbuf %s", buf);
     sprintf(buf, "%08x", cur); // format with leading 0s
-    //buf[8] = '\0';
     //printf("\nbuf %s", buf);
     //printf("\nhex %s", hex);
     if (i>0) {
       size += 8;
       hex = (char *) realloc(hex, sizeof(char) * size);
-      // if (!hex) {
-      //   printf("leak!!");
-      // }
     }
     //printf("\n%d", strlen(hex));
     buf += 8;
@@ -155,9 +151,6 @@ char *uint256_format_as_hex(UInt256 val) {
 
   memmove(hex, start, size); // moves the string to beginning
   hex = (char *) realloc(hex, sizeof(char) * size);
-  // if (!hex) {
-  //   printf("leak!!");
-  // }
 
   return hex;
 }
@@ -256,6 +249,8 @@ UInt256 uint256_negate(UInt256 val) {
 UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   UInt256 result;
   // TODO: implement
+
+
   return result;
 }
 
@@ -265,5 +260,7 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
   // TODO: implement
+  
+
   return result;
 }
