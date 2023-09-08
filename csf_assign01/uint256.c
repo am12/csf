@@ -190,18 +190,14 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
   uint32_t carry = 0;
-  for (int i = 0; i < 8; i++) {
+  for (int i=0; i<8; i++) {
     uint32_t cleft = left.data[i];
     uint32_t cright = right.data[i];
-    uint32_t csum;
-    csum = cleft + cright + carry;
+    uint32_t csum = cleft + cright + carry;
     if (csum < cleft) {
       carry = 1;
     } else {
       carry = 0; 
-    }
-    if ((i = 7) && (carry != 0)) {
-      sum.data[i] = 0;
     }
     sum.data[i] = csum;
   }
@@ -239,9 +235,11 @@ UInt256 uint256_sub(UInt256 left, UInt256 right) {
  */
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
-  for (int i =0; i < 9; i++) {
-    result.data[i] = ~val.data[i]+1;
+  UInt256 one = uint256_create_from_u32(1);
+  for (int i=0; i<8; i++) {
+    result.data[i] = ~val.data[i];
   }
+  result = uint256_add(result, one);
   return result;
 }
 
