@@ -7,6 +7,17 @@
 // Create a UInt256 value from a single uint32_t value.
 // Only the least-significant 32 bits are initialized directly,
 // all other bits are set to 0.
+
+/*
+ * Create a UInt256 value from a uint32_t value. All other bits are set to 0
+ *
+ * Parameters: 
+ *  val - uint32_t number
+ *
+ * Returns:
+ *  a UInt256 variable with val in the first column
+ *
+ */
 UInt256 uint256_create_from_u32(uint32_t val) {
   UInt256 result;
   result.data[0] = val; // least significant bit is a uint32_t
@@ -19,6 +30,16 @@ UInt256 uint256_create_from_u32(uint32_t val) {
 // Create a UInt256 value from an array of NWORDS uint32_t values.
 // The element at index 0 is the least significant, and the element
 // at index 3 is the most significant.
+
+/*
+ * Create a UInt256 value from an array of uint32_t values
+ *
+ * Parameters: 
+ *  data[8] - an array (size 8) of uint32_t values
+ *
+ * Returns:
+ *  a UInt256 variable populated with values in data
+ */
 UInt256 uint256_create(const uint32_t data[8]) {
   UInt256 result;
   for(int i = 0; i < 8; i++) {
@@ -28,6 +49,16 @@ UInt256 uint256_create(const uint32_t data[8]) {
 }
 
 // Create a UInt256 value from a string of hexadecimal digits.
+
+/*
+ * Create a UInt256 value from a string of hexadecimal digits 
+ *
+ * Parameters: 
+ *  *hex - pointer to a string of hexadecimal digits
+ *
+ * Returns:
+ *  a UInt256 variable populated with converted values from hex
+ */
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
   int index = 0;
@@ -51,6 +82,17 @@ UInt256 uint256_create_from_hex(const char *hex) {
 }
 
 // Takes 8-character hex string and converts to unsigned long.
+
+/*
+ * Translates hex string to unsigned long
+ *
+ * Parameters: 
+ *  *start - start of string
+ *  *end - end of string
+ *
+ * Returns:
+ *  a converted uint32_t value froom a hex string
+ */
 uint32_t hex_to_ul(const char *start, const char *end) {
   uint32_t sum = 0;
   uint32_t value;
@@ -69,6 +111,16 @@ uint32_t hex_to_ul(const char *start, const char *end) {
 
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
+
+/*
+ * Translates an UInt256 value into a hex string
+ *
+ * Parameters: 
+ *  val - UInt256 to be translated into hex
+ *
+ * Returns:
+ *  a hex string translated from a UInt256
+ */
 char *uint256_format_as_hex(UInt256 val) {
   char *hex = (char *) malloc(sizeof(char) * 9); // starting size
   char *buf = hex;
@@ -101,6 +153,17 @@ char *uint256_format_as_hex(UInt256 val) {
 // Get 32 bits of data from a UInt256 value.
 // Index 0 is the least significant 32 bits, index 3 is the most
 // significant 32 bits.
+
+/*
+ * Gets 32 bits of data from a UInt256 value with the user choosing the index
+ *
+ * Parameters: 
+ *  val - the UInt256 we want to extract data from
+ *  index - index of bits wanted
+ *
+ * Returns:
+ *  a uin32_t variable extracted from a UInt256 variable
+ */
 uint32_t uint256_get_bits(UInt256 val, unsigned index) {
   uint32_t bits;
   bits = val.data[index];
@@ -108,23 +171,70 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
 }
 
 // Compute the sum of two UInt256 values.
+
+/*
+ * Computes the sum of two UInt256 values
+ *
+ * Parameters: 
+ *  left - first value to be added
+ *  right - second value to be added 
+ *
+ * Returns:
+ *  A sum of the left and right values
+ */
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
-  // TODO: implement
+  uint32_t carry = 0;
+  for (int i = 0; i < 8; i++) {
+    uint32_t cleft = left[i];
+    uint32_t cright = right[i];
+    sum = cleft + cright + carry;
+    if (sum < cleft) {
+      carry = 1;
+    } else {
+      carry = 0; 
+    }
+    if ((i = 7) and (carry != 0)) {
+      sum = 0;
+    }
+  }
   return sum;
 }
 
 // Compute the difference of two UInt256 values.
+
+/*
+ * Computes the difference of two UInt256 values
+ *
+ * Parameters: 
+ *  left - first value to be added
+ *  right - second value to be added 
+ *
+ * Returns:
+ *  A sum of the left and right values
+ */
 UInt256 uint256_sub(UInt256 left, UInt256 right) {
   UInt256 result;
-  // TODO: implement
+  result = uint256_add(left, uint256_negate(right));
   return result;
 }
 
 // Return the two's-complement negation of the given UInt256 value.
+
+/*
+ * Computes the two's-complement negation of a UInt256 value
+ *
+ * Parameters: 
+ *  val - UInt256 value we want the negated two's-complement of 
+ *
+ * Returns:
+ *  Negated two's-complement of a value
+ */
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
-  // TODO: implement
+  for (int i =0; i < 9; i++) {
+    result[i] = ~val[i]+1;
+  }
   return result;
 }
 
