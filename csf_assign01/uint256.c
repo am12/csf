@@ -70,30 +70,42 @@ uint32_t hex_to_ul(const char *start, const char *end) {
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
-  char *hex = (char *) malloc(sizeof(char) * 9); // starting size
+  int size = 9;
+  char *hex = (char *) malloc(sizeof(char) * size); // starting size
   char *buf = hex;
-  int resize;
+  uint32_t cur;
   
   for (int i=7; i>=0; i--) {
-    uint32_t cur = val.data[i];
-    buf[8] = '\0'; // MAY DELETE
+    cur = val.data[i];
+    //printf("\ncur %u", cur);
+    //printf("\nbuf %s", buf);
     sprintf(buf, "%08x", cur); // format with leading 0s
+    //buf[8] = '\0';
+    //printf("\nbuf %s", buf);
+    //printf("\nhex %s", hex);
     if (i>0) {
-      resize = 8 * (9-i) + 1;
-      hex = (char *) realloc(hex, sizeof(char) * resize);
+      size += 8;
+      hex = (char *) realloc(hex, sizeof(char) * size);
+      // if (!hex) {
+      //   printf("leak!!");
+      // }
     }
-    buf = buf + 8;
+    //printf("\n%d", strlen(hex));
+    buf += 8;
   }
 
   // ensure that the outputted hex string has no leading 0s
   char *start = hex;
-  int finalSize = resize;
   while (*start == '0' && start < buf-1) {
-    finalSize--;
+    size--;
     start++;
   }
-  memmove(hex, start, finalSize);
-  hex = (char *) realloc(hex, sizeof(char) * finalSize);
+
+  memmove(hex, start, size); // moves the string to beginning
+  hex = (char *) realloc(hex, sizeof(char) * size);
+  // if (!hex) {
+  //   printf("leak!!");
+  // }
 
   return hex;
 }
