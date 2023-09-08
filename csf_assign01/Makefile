@@ -9,7 +9,7 @@ all : uint256_tests
 uint256_tests : $(OBJS)
 	$(CC) -o $@ $(OBJS)
 
-clean :
+clean : 
 	rm -f $(OBJS) uint256_tests depend.mak
 
 depend :
