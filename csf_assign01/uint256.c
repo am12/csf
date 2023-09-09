@@ -125,13 +125,11 @@ char *uint256_format_as_hex(UInt256 val) {
   int size = 9;
   char *hex = (char *) malloc(sizeof(char) * size); // starting size
   char *buf = hex;
-  uint32_t cur;
   
   for (int i=7; i>=0; i--) {
-    cur = val.data[i];
     //printf("\ncur %u", cur);
     //printf("\nbuf %s", buf);
-    sprintf(buf, "%08x", cur); // format with leading 0s
+    sprintf(buf, "%08x", val.data[i]); // format with leading 0s
     //printf("\nbuf %s", buf);
     //printf("\nhex %s", hex);
     if (i>0) {
@@ -139,8 +137,11 @@ char *uint256_format_as_hex(UInt256 val) {
       hex = (char *) realloc(hex, sizeof(char) * size);
     }
     //printf("\n%d", strlen(hex));
-    buf += 8;
-  }
+    // buf += 8;
+    buf = hex + size - 1 - 8;
+  }s 
+
+  hex[size-1] = '\0';
 
   // ensure that the outputted hex string has no leading 0s
   char *start = hex;
@@ -154,6 +155,33 @@ char *uint256_format_as_hex(UInt256 val) {
 
   return hex;
 }
+
+// char *uint256_format_as_hex(UInt256 val) {
+//   int size = 9;
+//   int read = 0;
+//   char *hex = (char *) malloc(sizeof(char) * size); 
+//   char *buf = hex;
+  
+
+//   for (int i=7; i>=0; i--) {
+//     if (i == 0) {
+//       read = sprintf(buf, "%x", val.data[i]);
+//     } else if (val.data[i] != 0U) {
+//       read = sprintf(buf, "%x", val.data[i]);
+//       size += read;
+//       hex = (char *) realloc(hex, sizeof(char) * size);
+//       buf = hex;
+//       buf += size - 8 - 1;
+//     }
+//   }
+  
+//   hex[strlen(hex)] = '\0';
+//   //printf("\nhex %s\n", hex);
+//   return hex;
+// }
+
+
+
 
 // Get 32 bits of data from a UInt256 value.
 // Index 0 is the least significant 32 bits, index 3 is the most
