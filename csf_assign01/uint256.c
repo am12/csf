@@ -122,36 +122,26 @@ uint32_t hex_to_ul(const char *start, const char *end) {
  *  a hex string translated from a UInt256
  */
 char *uint256_format_as_hex(UInt256 val) {
-  int size = 9;
-  char *hex = (char *) malloc(sizeof(char) * size); // starting size
+  int size = 9; // starting size
+  char *hex = (char *) malloc(sizeof(char) * size);
   char *buf = hex;
   
+  // incrementally add each digit to the hex string, growing the array
   for (int i=7; i>=0; i--) {
-    //printf("\ncur %u", cur);
-    //printf("\nbuf %s", buf);
     sprintf(buf, "%08x", val.data[i]); // format with leading 0s
-    //printf("\nbuf %s", buf);
-    //printf("\nhex %s", hex);
     if (i>0) {
       size += 8;
       hex = (char *) realloc(hex, sizeof(char) * size);
     }
-    //printf("\n%d", strlen(hex));
-    // buf += 8;
-    buf = hex + size - 1 - 8;
+    buf += 8;
   }
 
   // ensure that the outputted hex string has no leading 0s
-  printf("\nsize %d", size);
-  int trueLen = 0;
-  printf("\nhexlen %d", strlen(hex));
-  // printf("\nstartbuf %d", buf-start);
+  int trueLen = 0; // actual length of the string without leading 0
   while (hex[trueLen] == '0' && trueLen < size-2) {
     trueLen++;
   }
   int newSize = size - trueLen;
-  printf("\nnewsize %d", newSize);
-
   char *output = (char *) malloc(sizeof(char) * newSize);
   for (int i=0; i<newSize; i++) {
     output[i] = hex[trueLen + i];
@@ -159,41 +149,8 @@ char *uint256_format_as_hex(UInt256 val) {
   output[newSize] = '\0';
   free(hex);
   hex = output;
-
-  // memmove(hex, start, size-1); // moves the string to beginning
-  printf("\noutput %s", output);
-  // //hex = (char *) realloc(hex, sizeof(char) * size);
-  // hex[size] = '\0';
-  // printf("\nhexafter %d %s", size, hex);
-
   return hex;
 }
-
-// char *uint256_format_as_hex(UInt256 val) {
-//   int size = 9;
-//   int read = 0;
-//   char *hex = (char *) malloc(sizeof(char) * size); 
-//   char *buf = hex;
-  
-
-//   for (int i=7; i>=0; i--) {
-//     if (i == 0) {
-//       read = sprintf(buf, "%x", val.data[i]);
-//     } else if (val.data[i] != 0U) {
-//       read = sprintf(buf, "%x", val.data[i]);
-//       size += read;
-//       hex = (char *) realloc(hex, sizeof(char) * size);
-//       buf = hex;
-//       buf += size - 8 - 1;
-//     }
-//   }
-  
-//   hex[strlen(hex)] = '\0';
-//   //printf("\nhex %s\n", hex);
-//   return hex;
-// }
-
-
 
 
 // Get 32 bits of data from a UInt256 value.
