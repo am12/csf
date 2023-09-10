@@ -139,19 +139,32 @@ char *uint256_format_as_hex(UInt256 val) {
     //printf("\n%d", strlen(hex));
     // buf += 8;
     buf = hex + size - 1 - 8;
-  }s 
-
-  hex[size-1] = '\0';
-
-  // ensure that the outputted hex string has no leading 0s
-  char *start = hex;
-  while (*start == '0' && start < buf-1) {
-    size--;
-    start++;
   }
 
-  memmove(hex, start, size); // moves the string to beginning
-  hex = (char *) realloc(hex, sizeof(char) * size);
+  // ensure that the outputted hex string has no leading 0s
+  printf("\nsize %d", size);
+  int trueLen = 0;
+  printf("\nhexlen %d", strlen(hex));
+  // printf("\nstartbuf %d", buf-start);
+  while (hex[trueLen] == '0' && trueLen < size-2) {
+    trueLen++;
+  }
+  int newSize = size - trueLen;
+  printf("\nnewsize %d", newSize);
+
+  char *output = (char *) malloc(sizeof(char) * newSize);
+  for (int i=0; i<newSize; i++) {
+    output[i] = hex[trueLen + i];
+  }
+  output[newSize] = '\0';
+  free(hex);
+  hex = output;
+
+  // memmove(hex, start, size-1); // moves the string to beginning
+  printf("\noutput %s", output);
+  // //hex = (char *) realloc(hex, sizeof(char) * size);
+  // hex[size] = '\0';
+  // printf("\nhexafter %d %s", size, hex);
 
   return hex;
 }
