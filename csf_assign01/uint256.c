@@ -192,7 +192,7 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
     uint32_t cleft = left.data[i];
     uint32_t cright = right.data[i];
     uint32_t csum = cleft + cright + carry;
-    if (csum < cleft) {
+    if (csum < cleft || csum < cright) {
       carry = 1;
     } else {
       carry = 0; 
