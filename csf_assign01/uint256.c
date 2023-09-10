@@ -257,13 +257,16 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 // should be shifted back into the most significant bits.
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
-  // TODO: implement
-  // format as hex
-  // convert to binary with leading 0
-  // shift all bits right, save the overflow (array allocate size is equal to nbits)
-  // shift overflow left by 256-nbits
-  // add them together
-  
+  // TODO: implement  
+  // declare overflow
+  // for all nbits
+    // for every value in data
+      // declare previous and copy the overflowed bit into previous
+      // shift the bitstring right by 1
+      // save the overflowed bit
+      // if not the first bit
+        // add the previous overflowed bit to beginning
+    // add overflowed bit (last value) to the beginning of first value
 
   return result;
 }
