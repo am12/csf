@@ -257,16 +257,32 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 // should be shifted back into the most significant bits.
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
-  // TODO: implement  
-  // declare overflow
-  // for all nbits
-    // for every value in data
-      // declare previous and copy the overflowed bit into previous
-      // shift the bitstring right by 1
-      // save the overflowed bit
-      // if not the first bit
-        // add the previous overflowed bit to beginning
-    // add overflowed bit (last value) to the beginning of first value
+  // TODO: implement
+  // copy all of val into result
+  for (int i=0; i<8; i++) {
+    result.data[i] = val.data[i];
+  }
 
+  // for all nbits
+  for (unsigned i=0; i<nbits; i++) {
+    // declare overflow
+    unsigned overflow = 0;
+    // for every value in data
+    for (int j=0; j<8; j++) {
+      // declare previous and copy the overflowed bit into previous
+      unsigned previous = overflow;
+      // save the overflowed bit
+      overflow = result.data[i] & 1;
+      // shift the bitstring right by 1
+      result.data[i] = result.data[i] >> 1;
+      // if not the first bit
+      if (j != 0) {
+        // add the previous overflowed bit to beginning
+        result.data[i] = result.data[i] + (previous << 7);
+      }
+    }
+    // add overflowed bit (last value) to the beginning of first value
+    result.data[0] = result.data[0] + (overflow << 7);
+  }
   return result;
 }
