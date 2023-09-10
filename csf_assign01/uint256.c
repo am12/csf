@@ -275,14 +275,14 @@ UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
       overflow = result.data[i] & 1;
       // shift the bitstring right by 1
       result.data[i] = result.data[i] >> 1;
-      // if not the first bit
-      if (j != 0) {
+      // if not the first bit and previous bit is 1
+      if (j != 0 && previous) {
         // add the previous overflowed bit to beginning
-        result.data[i] = result.data[i] + (previous << 7);
+        result.data[i] = result.data[i] + (previous << 31);
       }
     }
     // add overflowed bit (last value) to the beginning of first value
-    result.data[0] = result.data[0] + (overflow << 7);
+    result.data[0] = result.data[0] + (overflow << 31);
   }
   return result;
 }
