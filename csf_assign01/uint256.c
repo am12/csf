@@ -246,9 +246,31 @@ UInt256 uint256_negate(UInt256 val) {
 // should be shifted back into the least significant bits.
 UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   UInt256 result;
-  // TODO: implement
-
-
+  // copy all of val into result
+  for (int i=0; i<8; i++) {
+    result.data[i] = val.data[i];
+  }
+  // for all nbits
+  for (unsigned i=0; i<nbits; i++) {
+    // declare overflow
+    uint32_t overflow = 0;
+    // for every value in data
+    for (int j=0; j<8; j++) {
+      // declare previous and copy the overflowed bit into previous
+      uint32_t previous = overflow;
+      // save the overflowed bit
+      overflow = ((result.data[j] & 0x80000000U) >> 31);
+      // shift the bitstring left by 1
+      result.data[j] = result.data[j] << 1;
+      // if not the first bit and previous bit is 1
+      if (j != 0 && previous) {
+        // add the previous overflowed bit to end
+        result.data[j] = result.data[j] + previous;
+      }
+    }
+    // add overflowed bit (last value) to the end of first value
+    result.data[0] = result.data[0] + overflow;
+  }
   return result;
 }
 
@@ -257,32 +279,30 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 // should be shifted back into the most significant bits.
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
-  // TODO: implement
   // copy all of val into result
   for (int i=0; i<8; i++) {
     result.data[i] = val.data[i];
   }
-
   // for all nbits
   for (unsigned i=0; i<nbits; i++) {
     // declare overflow
-    unsigned overflow = 0;
+    uint32_t overflow = 0;
     // for every value in data
-    for (int j=0; j<8; j++) {
+    for (int j=7; j>=0; j--) {
       // declare previous and copy the overflowed bit into previous
-      unsigned previous = overflow;
+      uint32_t previous = overflow;
       // save the overflowed bit
-      overflow = result.data[i] & 1;
+      overflow = result.data[j] & 1;
       // shift the bitstring right by 1
-      result.data[i] = result.data[i] >> 1;
+      result.data[j] = result.data[j] >> 1;
       // if not the first bit and previous bit is 1
-      if (j != 0 && previous) {
+      if (j != 7 && previous) {
         // add the previous overflowed bit to beginning
-        result.data[i] = result.data[i] + (previous << 31);
+        result.data[j] = result.data[j] + (previous << 31);
       }
     }
     // add overflowed bit (last value) to the beginning of first value
-    result.data[0] = result.data[0] + (overflow << 31);
+    result.data[7] = result.data[7] + (overflow << 31);
   }
   return result;
 }
