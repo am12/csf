@@ -202,6 +202,12 @@ void test_add(TestObjs *objs) {
   
   result = uint256_add(objs->one, objs->max);
   ASSERT_SAME(objs->zero, result);
+
+  result = uint256_add(objs->one, objs->max);
+  ASSERT_SAME(objs->zero, result);
+
+  result = uint256_add(objs->max, objs->one);
+  ASSERT_SAME(objs->zero, result);
 }
 
 void test_sub(TestObjs *objs) {
@@ -211,6 +217,18 @@ void test_sub(TestObjs *objs) {
   ASSERT_SAME(objs->zero, result);
 
   result = uint256_sub(objs->one, objs->one);
+  ASSERT_SAME(objs->zero, result);
+
+  result = uint256_sub(objs->zero, objs->one);
+  ASSERT_SAME(objs->max, result);
+
+  result = uint256_sub(objs->one, objs->zero);
+  ASSERT_SAME(objs->one, result);
+
+  result = uint256_sub(objs->max, objs->zero);
+  ASSERT_SAME(objs->max, result);
+
+  result = uint256_sub(objs->max, objs->max);
   ASSERT_SAME(objs->zero, result);
 
   result = uint256_sub(objs->zero, objs->one);
