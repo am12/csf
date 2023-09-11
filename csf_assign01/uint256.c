@@ -122,17 +122,13 @@ uint32_t hex_to_ul(const char *start, const char *end) {
  *  a hex string translated from a UInt256
  */
 char *uint256_format_as_hex(UInt256 val) {
-  int size = 9; // starting size
+  int size = 65; // starting size
   char *hex = (char *) malloc(sizeof(char) * size);
   char *buf = hex;
   
   // incrementally add each digit to the hex string, growing the array
   for (int i=7; i>=0; i--) {
     sprintf(buf, "%08x", val.data[i]); // format with leading 0s
-    if (i>0) {
-      size += 8;
-      hex = (char *) realloc(hex, sizeof(char) * size);
-    }
     buf += 8;
   }
 
@@ -146,10 +142,8 @@ char *uint256_format_as_hex(UInt256 val) {
   for (int i=0; i<newSize; i++) {
     output[i] = hex[trueLen + i];
   }
-  output[newSize] = '\0';
   free(hex);
-  hex = output;
-  return hex;
+  return output;
 }
 
 
