@@ -245,7 +245,7 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
     result.data[i] = val.data[i];
   }
   // for all nbits
-  for (unsigned i=0; i<nbits; i++) {
+  for (unsigned i=0; i<(nbits%256); i++) {
     // declare overflow
     uint32_t overflow = 0;
     // for every value in data
@@ -278,7 +278,7 @@ UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
     result.data[i] = val.data[i];
   }
   // for all nbits
-  for (unsigned i=0; i<nbits; i++) {
+  for (unsigned i=0; i<(nbits%256); i++) {
     // declare overflow
     uint32_t overflow = 0;
     // for every value in data
