@@ -260,6 +260,9 @@ void test_rotate_left(TestObjs *objs) {
   result = uint256_rotate_left(objs->msb_set, 257);
   ASSERT_SAME(objs->one, result);
 
+  result = uint256_rotate_left(objs->one, 16777216);
+  ASSERT_SAME(objs->one, result);
+
   // after rotating the "rot" value left by 4 bits, the resulting value should be
   //   D0000000 00000000 00000000 00000000 00000000 00000000 00000000 00000ABC
   result = uint256_rotate_left(objs->rot, 4);
@@ -297,6 +300,9 @@ void test_rotate_right(TestObjs *objs) {
 
   result = uint256_rotate_right(objs->one, 257);
   ASSERT_SAME(objs->msb_set, result);
+
+  result = uint256_rotate_right(objs->one, 16777216);
+  ASSERT_SAME(objs->one, result);
 
   // after rotating the "rot" value right by 4 bits, the resulting value should be
   //   BCD00000 00000000 00000000 00000000 00000000 00000000 00000000 0000000A
