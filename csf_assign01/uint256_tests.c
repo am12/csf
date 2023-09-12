@@ -257,6 +257,9 @@ void test_rotate_left(TestObjs *objs) {
   result = uint256_rotate_left(objs->msb_set, 1);
   ASSERT_SAME(objs->one, result);
 
+  result = uint256_rotate_left(objs->msb_set, 257);
+  ASSERT_SAME(objs->one, result);
+
   // after rotating the "rot" value left by 4 bits, the resulting value should be
   //   D0000000 00000000 00000000 00000000 00000000 00000000 00000000 00000ABC
   result = uint256_rotate_left(objs->rot, 4);
@@ -268,6 +271,20 @@ void test_rotate_left(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xD0000000U == result.data[7]);
+
+  result = uint256_rotate_left(objs->rot, 260);
+  ASSERT(0x00000ABCU == result.data[0]);
+  ASSERT(0U == result.data[1]);
+  ASSERT(0U == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0U == result.data[5]);
+  ASSERT(0U == result.data[6]);
+  ASSERT(0xD0000000U == result.data[7]);
+
+  result = uint256_rotate_left(objs->zero, 255);
+  ASSERT_SAME(objs->zero, result);
+
 }
 
 void test_rotate_right(TestObjs *objs) {
@@ -276,6 +293,9 @@ void test_rotate_right(TestObjs *objs) {
   // rotating 1 right by 1 position should result in a value with just
   // the most-significant bit set
   result = uint256_rotate_right(objs->one, 1);
+  ASSERT_SAME(objs->msb_set, result);
+
+  result = uint256_rotate_right(objs->one, 257);
   ASSERT_SAME(objs->msb_set, result);
 
   // after rotating the "rot" value right by 4 bits, the resulting value should be
@@ -289,4 +309,17 @@ void test_rotate_right(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xBCD00000U == result.data[7]);
+
+  result = uint256_rotate_right(objs->rot, 260);
+  ASSERT(0x0000000AU == result.data[0]);
+  ASSERT(0U == result.data[1]);
+  ASSERT(0U == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0U == result.data[5]);
+  ASSERT(0U == result.data[6]);
+  ASSERT(0xBCD00000U == result.data[7]);
+
+  result = uint256_rotate_right(objs->zero, 255);
+  ASSERT_SAME(objs->zero, result);
 }
