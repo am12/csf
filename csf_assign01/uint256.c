@@ -4,19 +4,17 @@
 #include <stdio.h>
 #include "uint256.h"
 
-// Create a UInt256 value from a single uint32_t value.
-// Only the least-significant 32 bits are initialized directly,
-// all other bits are set to 0.
 
 /*
- * Create a UInt256 value from a uint32_t value. All other bits are set to 0
+ * Create a UInt256 value from a uint32_t value. 
+ * Only the least-significant 32 bits are initialized directly,
+ * all other bits are set to 0
  *
  * Parameters: 
  *  val - uint32_t number
  *
  * Returns:
- *  a UInt256 variable with val in the first column
- *
+ *  A UInt256 variable with val in the first column
  */
 UInt256 uint256_create_from_u32(uint32_t val) {
   UInt256 result;
@@ -27,18 +25,16 @@ UInt256 uint256_create_from_u32(uint32_t val) {
   return result;
 }
 
-// Create a UInt256 value from an array of NWORDS uint32_t values.
-// The element at index 0 is the least significant, and the element
-// at index 3 is the most significant.
-
 /*
  * Create a UInt256 value from an array of uint32_t values
- *
+ * The element at index 0 is the least significant, and the element
+ * at index 3 is the most significant.
+ * 
  * Parameters: 
  *  data[8] - an array (size 8) of uint32_t values
  *
  * Returns:
- *  a UInt256 variable populated with values in data
+ *  A UInt256 variable populated with values in data
  */
 UInt256 uint256_create(const uint32_t data[8]) {
   UInt256 result;
@@ -48,8 +44,6 @@ UInt256 uint256_create(const uint32_t data[8]) {
   return result;
 }
 
-// Create a UInt256 value from a string of hexadecimal digits.
-
 /*
  * Create a UInt256 value from a string of hexadecimal digits 
  *
@@ -57,7 +51,7 @@ UInt256 uint256_create(const uint32_t data[8]) {
  *  *hex - pointer to a string of hexadecimal digits
  *
  * Returns:
- *  a UInt256 variable populated with converted values from hex
+ *  A UInt256 variable populated with converted values from hex
  */
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
@@ -81,8 +75,6 @@ UInt256 uint256_create_from_hex(const char *hex) {
   return result;
 }
 
-// Takes 8-character hex string and converts to unsigned long.
-
 /*
  * Translates hex string to unsigned long
  *
@@ -91,7 +83,7 @@ UInt256 uint256_create_from_hex(const char *hex) {
  *  *end - end of string
  *
  * Returns:
- *  a converted uint32_t value froom a hex string
+ *  A converted uint32_t value froom a hex string
  */
 uint32_t hex_to_ul(const char *start, const char *end) {
   uint32_t sum = 0;
@@ -109,17 +101,15 @@ uint32_t hex_to_ul(const char *start, const char *end) {
   return sum;
 }
 
-// Return a dynamically-allocated string of hex digits representing the
-// given UInt256 value.
-
 /*
- * Translates an UInt256 value into a hex string
+ * Return a dynamically-allocated string of hex digits representing the
+ * given UInt256 value.
  *
  * Parameters: 
  *  val - UInt256 to be translated into hex
  *
  * Returns:
- *  a hex string translated from a UInt256
+ *  A hex string translated from a UInt256
  */
 char *uint256_format_as_hex(UInt256 val) {
   int size = 65; // starting size
@@ -146,28 +136,23 @@ char *uint256_format_as_hex(UInt256 val) {
   return output;
 }
 
-
-// Get 32 bits of data from a UInt256 value.
-// Index 0 is the least significant 32 bits, index 3 is the most
-// significant 32 bits.
-
 /*
- * Gets 32 bits of data from a UInt256 value with the user choosing the index
+ * Gets 32 bits of data from a UInt256 value.
+ * Index 0 is the least significant 32 bits, index 3 is the most
+ * significant 32 bits.
  *
  * Parameters: 
  *  val - the UInt256 we want to extract data from
  *  index - index of bits wanted
  *
  * Returns:
- *  a uin32_t variable extracted from a UInt256 variable
+ *  A uint32_t variable extracted from a UInt256 variable
  */
 uint32_t uint256_get_bits(UInt256 val, unsigned index) {
   uint32_t bits;
   bits = val.data[index];
   return bits;
 }
-
-// Compute the sum of two UInt256 values.
 
 /*
  * Computes the sum of two UInt256 values
@@ -196,8 +181,6 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
   return sum;
 }
 
-// Compute the difference of two UInt256 values.
-
 /*
  * Computes the difference of two UInt256 values
  *
@@ -213,8 +196,6 @@ UInt256 uint256_sub(UInt256 left, UInt256 right) {
   result = uint256_add(left, uint256_negate(right));
   return result;
 }
-
-// Return the two's-complement negation of the given UInt256 value.
 
 /*
  * Computes the two's-complement negation of a UInt256 value
@@ -235,9 +216,20 @@ UInt256 uint256_negate(UInt256 val) {
   return result;
 }
 
-// Return the result of rotating every bit in val nbits to
-// the left.  Any bits shifted past the most significant bit
-// should be shifted back into the least significant bits.
+
+
+/*
+ * Return the result of rotating every bit in val nbits to
+ * the left. Any bits shifted past the most significant bit
+ * should be shifted back into the least significant bits.
+ * 
+ * Parameters:
+ *  val - UInt256 value we want to rotate
+ *  nbits - the number of bits we are rotating by
+ * 
+ * Returns: 
+ *  A rotated UInt256 value
+ */
 UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   UInt256 result;
   // copy all of val into result
@@ -268,9 +260,18 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   return result;
 }
 
-// Return the result of rotating every bit in val nbits to
-// the right. Any bits shifted past the least significant bit
-// should be shifted back into the most significant bits.
+/*
+ * Return the result of rotating every bit in val nbits to
+ * the right. Any bits shifted past the least significant bit
+ * should be shifted back into the most significant bits.
+ *
+ * Parameters:
+ *  val - UInt256 value we want to rotate
+ *  nbits - the number of bits we are rotating by
+ * 
+ * Returns: 
+ *  A rotated UInt256 value
+ */
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result;
   // copy all of val into result
