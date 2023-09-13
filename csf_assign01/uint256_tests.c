@@ -159,7 +159,7 @@ void test_create(TestObjs *objs) {
   ASSERT(5U == val1.data[4]);
   ASSERT(6U == val1.data[5]);
   ASSERT(7U == val1.data[6]);
-  ASSERT(8U == val1.data[7]);
+  ASSERT(8U == val1.data[7]);  
 }
 
 void test_create_from_hex(TestObjs *objs) {
@@ -171,6 +171,15 @@ void test_create_from_hex(TestObjs *objs) {
 
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
+
+  UInt256 msb_set = uint256_create_from_hex("8000000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_SAME(objs->msb_set, msb_set);
+
+  UInt256 example = uint256_create_from_hex("0123456789abcdef");
+  UInt256 correct;
+  uint32_t correct_data[8] = { 0x89abcdefU, 0x01234567U, 0U, 0U, 0U, 0U, 0U, 0U };
+  INIT_FROM_ARR(correct, correct_data);
+  ASSERT_SAME(correct, example);
 }
 
 void test_format_as_hex(TestObjs *objs) {
@@ -186,6 +195,17 @@ void test_format_as_hex(TestObjs *objs) {
 
   s = uint256_format_as_hex(objs->max);
   ASSERT(0 == strcmp("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", s));
+  free(s);
+
+  s = uint256_format_as_hex(objs->msb_set);
+  ASSERT(0 == strcmp("8000000000000000000000000000000000000000000000000000000000000000", s));
+  free(s);
+
+  UInt256 correct;
+  uint32_t correct_data[8] = { 0x89abcdefU, 0x01234567U, 0U, 0U, 0U, 0U, 0U, 0U };
+  INIT_FROM_ARR(correct, correct_data);
+  s = uint256_format_as_hex(correct);
+  ASSERT(0 == strcmp("123456789abcdef", s));
   free(s);
 }
 
