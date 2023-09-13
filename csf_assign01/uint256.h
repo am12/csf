@@ -1,3 +1,10 @@
+/*
+ * A simple C library implementation of a 256-bit unsigned integer data type.
+ * CSF Assignment 1
+ * Alan Mao, Lauren Siu
+ * smao10@jhu.edu, lsiu1@jhu.edu
+ */
+
 #ifndef UINT256_H
 #define UINT256_H
 

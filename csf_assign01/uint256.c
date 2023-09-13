@@ -1,3 +1,10 @@
+/*
+ * A simple C library implementation of a 256-bit unsigned integer data type.
+ * CSF Assignment 1
+ * Alan Mao, Lauren Siu
+ * smao10@jhu.edu, lsiu1@jhu.edu
+ */
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -166,12 +173,12 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
  */
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
-  uint32_t carry = 0;
+  uint32_t carry = 0; // the carryover from previous addition of bits
   for (int i=0; i<8; i++) {
     uint32_t cleft = left.data[i];
     uint32_t cright = right.data[i];
     uint32_t csum = cleft + cright + carry;
-    if (csum < cleft || csum < cright) {
+    if (csum < cleft || csum < cright) { // detecting overflow
       carry = 1;
     } else {
       carry = 0; 
