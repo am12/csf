@@ -8,7 +8,7 @@ MODES = {
 
 mode = ARGV.length > 0 ? ARGV[0].to_sym : MODES.keys[rand(3)]
 
-range = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+range = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 if mode == :mul or (ENV.has_key?('SMALL') and ENV['SMALL'] == 'yes')
   range = 0xfffffffffffffffffffffffffffffff
 end

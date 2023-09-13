@@ -171,14 +171,20 @@ void test_create_from_hex(TestObjs *objs) {
 
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
+  UInt256 msb_set = uint256_create_from_hex("8000000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_SAME(objs->msb_set, msb_set);
+
+  UInt256 example = uint256_create_from_hex("0123456789abcdef");
+  UInt256 correct;
+  uint32_t correct_data[8] = { 0x89abcdefU, 0x01234567U, 0U, 0U, 0U, 0U, 0U, 0U };
+  INIT_FROM_ARR(correct, correct_data);
+  ASSERT_SAME(correct, example);
 
   UInt256 case1 = uint256_create_from_hex("00000000000000000000000000000000000000000000000000000000000000001");
   ASSERT_SAME(objs->one, case1);
 
   UInt256 case2 = uint256_create_from_hex("ggggggggggggggffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, case2);
-
-
 }
 
 void test_format_as_hex(TestObjs *objs) {
@@ -217,45 +223,42 @@ void test_add(TestObjs *objs) {
   //1+max=0
   result = uint256_add(objs->one, objs->max);
   ASSERT_SAME(objs->zero, result);
-  //max+max=zero
-  result = uint256_add(objs->max, objs->max);
-  ASSERT_SAME(objs->max, result);
 }
 
 void test_sub(TestObjs *objs) {
   UInt256 result;
-
+  //0-0=0
   result = uint256_sub(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
-
+  //1-1=0
   result = uint256_sub(objs->one, objs->one);
   ASSERT_SAME(objs->zero, result);
-
+  //0-1=max
   result = uint256_sub(objs->zero, objs->one);
   ASSERT_SAME(objs->max, result);
-
+  //1-0=1
   result = uint256_sub(objs->one, objs->zero);
   ASSERT_SAME(objs->one, result);
-
+  //max-0=max
   result = uint256_sub(objs->max, objs->zero);
   ASSERT_SAME(objs->max, result);
-
+  //max-max=0
   result = uint256_sub(objs->max, objs->max);
   ASSERT_SAME(objs->zero, result);
-
+  //0-1=max
   result = uint256_sub(objs->zero, objs->one);
   ASSERT_SAME(objs->max, result);
 }
 
 void test_negate(TestObjs *objs) {
   UInt256 result;
-
+  //~0=0
   result = uint256_negate(objs->zero);
   ASSERT_SAME(objs->zero, result);
-
+  //~1=max
   result = uint256_negate(objs->one);
   ASSERT_SAME(objs->max, result);
-
+  //~max=1
   result = uint256_negate(objs->max);
   ASSERT_SAME(objs->one, result);
 }
