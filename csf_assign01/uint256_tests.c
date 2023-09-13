@@ -289,6 +289,7 @@ void test_sub(TestObjs *objs) {
   ASSERT_SAME(objs->max, result);
 
   UInt256 left, right;
+
   left.data[0] = 0x3b9656f4U;
   left.data[1] = 0x3197f7e3U;
   left.data[2] = 0xc12ec4c8U;
@@ -341,7 +342,7 @@ void test_rotate_left(TestObjs *objs) {
   result = uint256_rotate_left(objs->msb_set, 257);
   ASSERT_SAME(objs->one, result);
 
-  result = uint256_rotate_left(objs->one, 16777216);
+  result = uint256_rotate_left(objs->one, 16777216); // 256^3
   ASSERT_SAME(objs->one, result);
 
   // after rotating the "rot" value left by 4 bits, the resulting value should be
@@ -382,7 +383,7 @@ void test_rotate_right(TestObjs *objs) {
   result = uint256_rotate_right(objs->one, 257);
   ASSERT_SAME(objs->msb_set, result);
 
-  result = uint256_rotate_right(objs->one, 16777216);
+  result = uint256_rotate_right(objs->one, 16777216); // 256^3
   ASSERT_SAME(objs->one, result);
 
   // after rotating the "rot" value right by 4 bits, the resulting value should be
