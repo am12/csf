@@ -216,8 +216,6 @@ UInt256 uint256_negate(UInt256 val) {
   return result;
 }
 
-
-
 /*
  * Return the result of rotating every bit in val nbits to
  * the left. Any bits shifted past the most significant bit
@@ -236,26 +234,19 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   for (int i=0; i<8; i++) {
     result.data[i] = val.data[i];
   }
-  // for all nbits
+  
+  // rotate bit by bit
   for (unsigned i=0; i<(nbits%256); i++) {
-    // declare overflow
     uint32_t overflow = 0;
-    // for every value in data
     for (int j=0; j<8; j++) {
-      // declare previous and copy the overflowed bit into previous
       uint32_t previous = overflow;
-      // save the overflowed bit
-      overflow = ((result.data[j] & 0x80000000U) >> 31);
-      // shift the bitstring left by 1
+      overflow = ((result.data[j] & 0x80000000U) >> 31); // save the overflowed bit
       result.data[j] = result.data[j] << 1;
-      // if not the first bit and previous bit is 1
       if (j != 0 && previous) {
-        // add the previous overflowed bit to end
-        result.data[j] = result.data[j] + previous;
+        result.data[j] = result.data[j] + previous; // add the previous overflowed bit to end
       }
     }
-    // add overflowed bit (last value) to the end of first value
-    result.data[0] = result.data[0] + overflow;
+    result.data[0] = result.data[0] + overflow; // add overflowed bit (last value) to the end of first value
   }
   return result;
 }
@@ -278,26 +269,19 @@ UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   for (int i=0; i<8; i++) {
     result.data[i] = val.data[i];
   }
-  // for all nbits
+
+  // rotate bit by bit
   for (unsigned i=0; i<(nbits%256); i++) {
-    // declare overflow
     uint32_t overflow = 0;
-    // for every value in data
     for (int j=7; j>=0; j--) {
-      // declare previous and copy the overflowed bit into previous
       uint32_t previous = overflow;
-      // save the overflowed bit
-      overflow = result.data[j] & 1;
-      // shift the bitstring right by 1
+      overflow = result.data[j] & 1; // save the overflowed bit
       result.data[j] = result.data[j] >> 1;
-      // if not the first bit and previous bit is 1
       if (j != 7 && previous) {
-        // add the previous overflowed bit to beginning
-        result.data[j] = result.data[j] + (previous << 31);
+        result.data[j] = result.data[j] + (previous << 31); // add the previous overflowed bit to beginning
       }
     }
-    // add overflowed bit (last value) to the beginning of first value
-    result.data[7] = result.data[7] + (overflow << 31);
+    result.data[7] = result.data[7] + (overflow << 31); // add overflowed bit (last value) to the beginning of first value
   }
   return result;
 }
