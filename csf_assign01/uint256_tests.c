@@ -235,6 +235,33 @@ void test_add(TestObjs *objs) {
 
   result = uint256_add(objs->max, objs->one);
   ASSERT_SAME(objs->zero, result);
+
+  UInt256 left, right;
+  left.data[0] = 0xbd3f2275U;
+  left.data[1] = 0xdaade3feU;
+  left.data[2] = 0x8f8991d5U;
+  left.data[3] = 0x4b5feaa9U;
+  left.data[4] = 0x19448805U;
+  left.data[5] = 0x525c1526U;
+  left.data[6] = 0x4719744bU;
+  left.data[7] = 0x50a3b0bcU;
+  right.data[0] = 0x90066acbU;
+  right.data[1] = 0xf3e33d14U;
+  right.data[2] = 0x39edfa60U;
+  right.data[3] = 0xb3da172dU;
+  right.data[4] = 0x2b92cedeU;
+  right.data[5] = 0x2594beccU;
+  right.data[6] = 0x0d571731U;
+  right.data[7] = 0x996fc7bdU;
+  result = uint256_add(left, right);
+  ASSERT(0x4d458d40U == result.data[0]);
+  ASSERT(0xce912113U == result.data[1]);
+  ASSERT(0xc9778c36U == result.data[2]);
+  ASSERT(0xff3a01d6U == result.data[3]);
+  ASSERT(0x44d756e3U == result.data[4]);
+  ASSERT(0x77f0d3f2U == result.data[5]);
+  ASSERT(0x54708b7cU == result.data[6]);
+  ASSERT(0xea137879U == result.data[7]);
 }
 
 void test_sub(TestObjs *objs) {
@@ -260,6 +287,33 @@ void test_sub(TestObjs *objs) {
 
   result = uint256_sub(objs->zero, objs->one);
   ASSERT_SAME(objs->max, result);
+
+  UInt256 left, right;
+  left.data[0] = 0x3b9656f4U;
+  left.data[1] = 0x3197f7e3U;
+  left.data[2] = 0xc12ec4c8U;
+  left.data[3] = 0x4958ea66U;
+  left.data[4] = 0x656007d8U;
+  left.data[5] = 0x1f484035U;
+  left.data[6] = 0xeb7563baU;
+  left.data[7] = 0xc14c710cU;
+  right.data[0] = 0x866af3f8U;
+  right.data[1] = 0x1e5bb25aU;
+  right.data[2] = 0x3ba1e6feU;
+  right.data[3] = 0x5eddb0d8U;
+  right.data[4] = 0x46909f1fU;
+  right.data[5] = 0xa897f893U;
+  right.data[6] = 0x743aa9d1U;
+  right.data[7] = 0x35a4ea4dU;
+  result = uint256_sub(left, right);
+  ASSERT(0xb52b62fcU == result.data[0]);
+  ASSERT(0x133c4588U == result.data[1]);
+  ASSERT(0x858cddcaU == result.data[2]);
+  ASSERT(0xea7b398eU == result.data[3]);
+  ASSERT(0x1ecf68b8U == result.data[4]);
+  ASSERT(0x76b047a2U == result.data[5]);
+  ASSERT(0x773ab9e8U == result.data[6]);
+  ASSERT(0x8ba786bfU == result.data[7]);  
 }
 
 void test_negate(TestObjs *objs) {
