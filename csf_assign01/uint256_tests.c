@@ -171,6 +171,14 @@ void test_create_from_hex(TestObjs *objs) {
 
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
+
+  UInt256 case1 = uint256_create_from_hex("00000000000000000000000000000000000000000000000000000000000000001");
+  ASSERT_SAME(objs->one, case1);
+
+  UInt256 case2 = uint256_create_from_hex("ggggggggggggggffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  ASSERT_SAME(objs->max, case2);
+
+
 }
 
 void test_format_as_hex(TestObjs *objs) {
@@ -191,30 +199,27 @@ void test_format_as_hex(TestObjs *objs) {
 
 void test_add(TestObjs *objs) {
   UInt256 result;
-
+  //0+0=0
   result = uint256_add(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
-
+  //0+1=1
   result = uint256_add(objs->zero, objs->one);
   ASSERT_SAME(objs->one, result);
-
+  //1+1=2
   uint32_t two_data[8] = { 2U };
   UInt256 two;
   INIT_FROM_ARR(two, two_data);
   result = uint256_add(objs->one, objs->one);
   ASSERT_SAME(two, result);
-
+  //max+1=0
   result = uint256_add(objs->max, objs->one);
   ASSERT_SAME(objs->zero, result);
-  
+  //1+max=0
   result = uint256_add(objs->one, objs->max);
   ASSERT_SAME(objs->zero, result);
-
-  result = uint256_add(objs->one, objs->max);
-  ASSERT_SAME(objs->zero, result);
-
-  result = uint256_add(objs->max, objs->one);
-  ASSERT_SAME(objs->zero, result);
+  //max+max=zero
+  result = uint256_add(objs->max, objs->max);
+  ASSERT_SAME(objs->max, result);
 }
 
 void test_sub(TestObjs *objs) {
