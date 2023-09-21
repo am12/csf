@@ -140,7 +140,20 @@ void wc_tolower(unsigned char *w) {
 // Remove any non-alphaabetic characters from the end of the
 // NUL-terminated character string pointed-to by w.
 void wc_trim_non_alpha(unsigned char *w) {
-  // TODO: implement
+  //edge case
+  if (w == NULL || *w == '\0') {
+    return;
+  }
+  //find first null character
+  while (*w != '\0') {
+    w++;
+  }
+  //go back to the last alphabetic character
+  w--;
+  while (!wc_isalpha(*w)) {
+    w--;
+  }
+  *(w + 1) = '\0';
 }
 
 // Search the specified linked list of WordEntry objects for an object
