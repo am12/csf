@@ -26,7 +26,7 @@
  *
 */
 uint32_t wc_hash(const unsigned char *w) {
-  uint32_t hash;
+  uint32_t hash = 5381;
   for (int i = 0; w[i] != '\0'; i++) {
     hash = hash * 33 + w[i];
   }
