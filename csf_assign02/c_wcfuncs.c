@@ -20,8 +20,17 @@
 //
 // Note that the character values should be treated as
 // being unsigned (in the range 0..255)
+
+/* 
+ *
+ *
+*/
 uint32_t wc_hash(const unsigned char *w) {
-  // TODO: implement
+  uint32_t hash;
+  for (int i = 0; w[i] != '\0'; i++) {
+    hash = hash * 33 + w[i];
+  }
+  return hash;
 }
 
 // Compare two strings lexicographically. Return
@@ -35,12 +44,13 @@ uint32_t wc_hash(const unsigned char *w) {
 // of the other, it is considered as "less than". E.g.,
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  // TODO: implement
+  return strcmp(lhs, rhs);
 }
 
 // Copy NUL-terminated source string to the destination buffer.
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
-  // TODO: implement
+  char *dest = malloc(strlen(source) + 1);
+  strcpy(dest, source);
 }
 
 // Return 1 if the character code in c is a whitespace character,
@@ -55,13 +65,36 @@ void wc_str_copy(unsigned char *dest, const unsigned char *source) {
 //   '\f'
 //   '\v'
 int wc_isspace(unsigned char c) {
-  // TODO: implement
+  switch (c) {
+    case ' ':
+      return 1;
+      break;
+    case '\t':
+      return 1;
+      break;
+    case '\r':
+      return 1;
+      break;
+    case '\n':
+      return 1;
+      break;
+    case '\f':
+      return 1;
+      break;
+    case '\v':
+      return 1;
+      break;
+    default:
+      return 0;
+  }
 }
 
 // Return 1 if the character code in c is an alphabetic character
 // ('A' through 'Z' or 'a' through 'z'), 0 otherwise.
 int wc_isalpha(unsigned char c) {
-  // TODO: implement
+  if((c < 'A') || (c > 'Z' && c < 'a') || (c > 'z')){
+    return 1;
+  }
 }
 
 // Read the next word from given input stream, storing
