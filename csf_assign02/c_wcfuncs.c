@@ -44,13 +44,24 @@ uint32_t wc_hash(const unsigned char *w) {
 // of the other, it is considered as "less than". E.g.,
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  return strcmp(lhs, rhs);
+  while ((*lhs != '\0') || (*rhs != '\0')){
+    if (*lhs == *rhs) {
+      lhs++;
+      rhs++;
+    } else if ((*lhs == '\0' && *rhs != '\0') || (*lhs != '\0' && *rhs == '\0') || (*lhs != *rhs)) {
+      return *lhs - *rhs;
+    } 
+  }
+  return 0;
 }
 
 // Copy NUL-terminated source string to the destination buffer.
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
-  char *dest = malloc(strlen(source) + 1);
-  strcpy(dest, source);
+  while (*source != '\0') {
+    *dest = *source;
+    dest++;
+    source++;
+  }
 }
 
 // Return 1 if the character code in c is a whitespace character,
@@ -109,7 +120,7 @@ int wc_isalpha(unsigned char c) {
 // MAX_WORDLEN characters, then only the first MAX_WORDLEN
 // characters in the sequence should be stored in the array.
 int wc_readnext(FILE *in, unsigned char *w) {
-  // TODO: implement
+  
 }
 
 // Convert the NUL-terminated character string in the array
