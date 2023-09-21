@@ -27,7 +27,7 @@
 */
 uint32_t wc_hash(const unsigned char *w) {
   uint32_t hash = 5381;
-  for (int i = 0; w[i] != '\0'; i++) {
+  for (int i = 0; w[i]; i++) {
     hash = hash * 33 + w[i];
   }
   return hash;
@@ -103,9 +103,13 @@ int wc_isspace(unsigned char c) {
 // Return 1 if the character code in c is an alphabetic character
 // ('A' through 'Z' or 'a' through 'z'), 0 otherwise.
 int wc_isalpha(unsigned char c) {
-  if((c < 'A') || (c > 'Z' && c < 'a') || (c > 'z')){
+  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+    if (c >= '0' && c <= '9') {
+      return 0;
+    }
     return 1;
   }
+  return 0;
 }
 
 // Read the next word from given input stream, storing
@@ -126,7 +130,11 @@ int wc_readnext(FILE *in, unsigned char *w) {
 // Convert the NUL-terminated character string in the array
 // pointed-to by w so that every letter is lower-case.
 void wc_tolower(unsigned char *w) {
-  // TODO: implement
+  for (int i = 0; w[i]; i++) {
+    if (w[i] >= 'A' && w[i] <= 'Z') {
+      w[i] += 32;
+    }
+  }
 }
 
 // Remove any non-alphaabetic characters from the end of the
