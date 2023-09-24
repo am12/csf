@@ -1,3 +1,10 @@
+/*
+ * A word count program in both C and x86-64 assembly language.
+ * CSF Assignment 2
+ * Alan Mao, Lauren Siu
+ * smao10@jhu.edu, lsiu1@jhu.edu
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include "wcfuncs.h"
@@ -22,7 +29,7 @@ int main(int argc, char **argv) {
 
   // TODO: make sure file is closed (if one was opened)
 
-  
+
   
   // TODO: make sure memory is freed
 
