@@ -96,11 +96,46 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
-	movq %rdi, %r10 ;save character
-	cmp %r10, 32 
+	movq %rdi, %r10 
+	/*save character*/
 	
+	cmp $9, %r10
+	/*cmp '\t'*/
+	je .L_space 
+	/*jump if equal*/
 
-	ret
+	cmp $10, %r10
+	/*cmp '\n'*/
+	je .L_space 
+	/*jump if equal*/
+
+	cmp $11, %r10
+	/*cmp '\v'*/
+	je .L_space 
+	/*jump if equal*/
+
+	cmp $12, %r10
+	/*cmp '\f'*/
+	je .L_space 
+	/*jump if equal*/
+
+	cmp $13, %r10
+	/*cmp '\r'*/
+	je .L_space 
+	/*jump if equal*/
+
+		/*is not space*/
+		xor %eax, %eax
+		/*clear eax*/
+		ret
+
+		/*is space*/
+		.L_space:
+			xor %eax, %eax
+			inc %eax
+			/*move 1 to return*/
+			ret
+
 
 /*
  * Return 1 if the character code in c is an alphabetic character
