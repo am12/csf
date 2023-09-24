@@ -86,20 +86,10 @@ void wc_str_copy(unsigned char *dest, const unsigned char *source) {
 int wc_isspace(unsigned char c) {
   switch (c) {
     case ' ':
-      return 1;
-      break;
     case '\t':
-      return 1;
-      break;
     case '\r':
-      return 1;
-      break;
     case '\n':
-      return 1;
-      break;
     case '\f':
-      return 1;
-      break;
     case '\v':
       return 1;
       break;
