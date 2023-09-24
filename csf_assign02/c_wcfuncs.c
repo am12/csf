@@ -1,3 +1,11 @@
+/*
+ * A word count program in both C and x86-64 assembly language.
+ * CSF Assignment 2
+ * Alan Mao, Lauren Siu
+ * smao10@jhu.edu, lsiu1@jhu.edu
+ */
+
+
 // Important: do not add any additional #include directives!
 // The only C library functions that may be used are
 //
@@ -78,20 +86,10 @@ void wc_str_copy(unsigned char *dest, const unsigned char *source) {
 int wc_isspace(unsigned char c) {
   switch (c) {
     case ' ':
-      return 1;
-      break;
     case '\t':
-      return 1;
-      break;
     case '\r':
-      return 1;
-      break;
     case '\n':
-      return 1;
-      break;
     case '\f':
-      return 1;
-      break;
     case '\v':
       return 1;
       break;

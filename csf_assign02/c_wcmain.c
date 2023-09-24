@@ -1,3 +1,10 @@
+/*
+ * A word count program in both C and x86-64 assembly language.
+ * CSF Assignment 2
+ * Alan Mao, Lauren Siu
+ * smao10@jhu.edu, lsiu1@jhu.edu
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include "wcfuncs.h"
@@ -21,6 +28,9 @@ int main(int argc, char **argv) {
   printf("Most frequent word: %s (%u)\n", (const char *) best_word, best_word_count);
 
   // TODO: make sure file is closed (if one was opened)
+
+
+  
   // TODO: make sure memory is freed
 
   return 0;
