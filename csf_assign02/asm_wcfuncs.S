@@ -89,7 +89,10 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
-	/* TODO: implement */
+	movq %rdi, %r10 ;save character
+	cmp %r10, 32 
+	
+
 	ret
 
 /*

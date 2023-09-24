@@ -22,7 +22,7 @@
 // being unsigned (in the range 0..255)
 
 /* 
- *
+ * 
  *
 */
 uint32_t wc_hash(const unsigned char *w) {
@@ -44,7 +44,7 @@ uint32_t wc_hash(const unsigned char *w) {
 // of the other, it is considered as "less than". E.g.,
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  while ((*lhs != '\0') || (*rhs != '\0')){
+  while ((wc_isspace(*lhs) == 0) || (wc_isspace(*rhs) == 0)){
     if (*lhs == *rhs) {
       lhs++;
       rhs++;
@@ -57,7 +57,7 @@ int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
 
 // Copy NUL-terminated source string to the destination buffer.
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
-  while (*source != '\0') {
+  while (wc_isspace(*source) == 0) {
     *dest = *source;
     dest++;
     source++;
@@ -124,7 +124,31 @@ int wc_isalpha(unsigned char c) {
 // MAX_WORDLEN characters, then only the first MAX_WORDLEN
 // characters in the sequence should be stored in the array.
 int wc_readnext(FILE *in, unsigned char *w) {
-  
+  int num = 0;
+  int c = fgetc(in);
+  while (c != EOF) {
+    if (wc_isspace(c) == 0) {
+      if (num < MAX_WORDLEN) {
+        //within max wordlen
+        w[num] = (unsigned char) c;
+        num++;
+      } 
+    } else {
+        // if white space
+        if (num > 0) {
+          w[num] = '\0';
+          return 1;
+        }
+    }
+    c = fgetc(in);
+  }
+  if (num > 0) {
+    // if read
+    w[num] = '\0';
+    return 1;
+  }
+  return 0;
+  //not read
 }
 
 // Convert the NUL-terminated character string in the array
@@ -185,5 +209,10 @@ struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned n
 
 // Free all of the nodes in given linked list of WordEntry objects.
 void wc_free_chain(struct WordEntry *p) {
-  // TODO: implement
+  //create pointer, free curr, go to next
+  while (p != NULL) {
+    struct WordEntry *next = p->next;
+    free(p);
+    p = next;
+  }
 }
