@@ -21,6 +21,9 @@ int main(int argc, char **argv) {
   printf("Most frequent word: %s (%u)\n", (const char *) best_word, best_word_count);
 
   // TODO: make sure file is closed (if one was opened)
+
+  
+  
   // TODO: make sure memory is freed
 
   return 0;
