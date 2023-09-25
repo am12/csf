@@ -96,45 +96,48 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
-	movq %rdi, %r10 
-	/*save character*/
-	
-	cmp $9, %r10
+	cmpq $9, %rdi
 	/*cmp '\t'*/
 	je .L_space 
 	/*jump if equal*/
 
-	cmp $10, %r10
+	cmpq $10, %rdi
 	/*cmp '\n'*/
 	je .L_space 
 	/*jump if equal*/
-
-	cmp $11, %r10
+	
+	cmpq $11, %rdi
 	/*cmp '\v'*/
 	je .L_space 
 	/*jump if equal*/
 
-	cmp $12, %r10
+	cmpq $12, %rdi
 	/*cmp '\f'*/
 	je .L_space 
 	/*jump if equal*/
 
-	cmp $13, %r10
+	cmpq $13, %rdi
 	/*cmp '\r'*/
 	je .L_space 
 	/*jump if equal*/
 
-		/*is not space*/
-		xor %eax, %eax
+	cmpq $32, %rdi
+	/*cmp ' '*/
+	je .L_space 
+	jne .L_not_space
+	/*jump if equal*/
+
+	/*is not space*/
+	.L_not_space:
+		mov $0, %rax
 		/*clear eax*/
 		ret
 
-		/*is space*/
-		.L_space:
-			xor %eax, %eax
-			inc %eax
-			/*move 1 to return*/
-			ret
+	/*is space*/
+	.L_space:
+		mov $1, %rax
+		/*move 1 to return*/
+		ret
 
 
 /*
