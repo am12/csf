@@ -129,12 +129,13 @@ wc_isspace:
 
 	/*is not space*/
 	.L_not_space:
-		mov $0, %rax
+		xor %rax, %rax
 		/*clear eax*/
 		ret
 
 	/*is space*/
 	.L_space:
+		xor %rax, %rax
 		mov $1, %rax
 		/*move 1 to return*/
 		ret
@@ -149,8 +150,44 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	/* TODO: implement */
-	ret
+	cmpq $65, %rdi
+	/*checks if c is possibly anything below 'A'*/
+	jle .L_isNot
+	/*if its lower, then it is not alphabetic*/
+	jge .L_highA
+	/*if its higher it can be alphabetic or a symbol*/
+
+	.L_highA:
+		cmpq $90, %rdi
+		jle .L_isAlpha
+		/*if its lower, then it is an uppercase letter*/
+		jge .L_checklower
+		/*if its greater, it can be alphabetic or a lowercase*/
+
+	.L_checklower:
+		cmpq $97, %rdi
+		jle .L_isNot
+		/*if its lower, then it is a symbol*/
+		jge .L_highlowZ
+		/*if its higher, it can be a lowercase letter*/
+	
+	.L_highlowZ:
+		cmpq $122, %rdi
+		jle .L_isAlpha
+		/*if its lower, it is a lowercase letter*/
+		jge .L_isNot
+		/*if its greater, then it is not alphabetic*/
+
+	.L_isNot:
+		xor %rax, %rax
+		/*return 0*/
+		ret
+	
+	.L_isAlpha:
+		xor %rax, %rax
+		mov $1, %rax
+		/*return 1*/
+		ret
 
 /*
  * Read the next word from given input stream, storing
