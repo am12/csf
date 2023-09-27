@@ -64,8 +64,43 @@ wc_hash:
  */
 	.globl wc_str_compare
 wc_str_compare:
-	/* TODO: implement */
-	ret
+	/* rdi is lhs, rsi is rhs */
+
+	.L_loop: 						/*looping through the string*/
+		cmpq $0, %rdi				/*check if lhs is null*/
+		je .L_lhs_null				/* if null, jump to L_lhs_null */
+
+		cmpq $0, %rsi				/*check if rhs is null if lhs is NOT null*/
+		je .L_lhs_longer			/* if null, then lhs is longer*/
+
+		cmpq %rdi, %rsi				/*compare char value*/
+		jne .L_compare				/* If not equal, jump to compare */
+
+		incq %rdi					/* look at the next chars since curr chars are equal*/
+		incq %rsi					
+		jmp .L_loop					/* move to restart loop*/
+	
+	.L_lhs_null:						
+		cmpq $0, %rsi				/* Check if rhs character is null */
+		je .L_equal					/*if true, both lhs and rhs are null*/
+		jne .L_rhs_longer			/* if not, then rhs is longer*/
+		
+	.L_rhs_longer:					/*rhs is longer, return -1*/
+		mov $-1, %eax
+		ret
+
+	.L_lhs_longer:					/*lhs is longer, return 1*/
+		mov $1, %eax
+		ret
+
+	.L_equal:						/* if strings are the same */
+		mov $0, %eax
+		ret
+
+	.L_compare:					
+		sub %rsi, %rdi				/*comparing individual chars, rhs - lhs = ? */
+		js .L_rhs_longer			/*if negative, then rhs > lhs*/
+		jns .L_lhs_longer			/* if positive, lhs > rhs*/
 
 /*
  * Copy NUL-terminated source string to the destination buffer.
