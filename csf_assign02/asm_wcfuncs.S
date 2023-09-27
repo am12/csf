@@ -76,7 +76,7 @@ wc_str_compare:
 		cmp $0, %r13b				/*check if rhs is null since lhs is NOT null*/
 		je .L_lhs_longer			/* if null, then lhs is longer*/
 
-		cmp %r12b, %r13b				/*compare char value*/
+		cmp %r12b, %r13b			/*compare char value*/
 		jne .L_compare				/* If not equal, jump to compare */
 
 		inc %rdi					/* look at the next chars since curr chars are equal*/
@@ -101,7 +101,7 @@ wc_str_compare:
 		ret
 
 	.L_compare:					
-		sub %r13b, %r12b				/*comparing individual chars, rhs - lhs = ? */
+		sub %r13b, %r12b			/*comparing individual chars, rhs - lhs = ? */
 		js .L_rhs_longer			/*if negative, then rhs > lhs*/
 		jns .L_lhs_longer			/* if positive, lhs > rhs*/
 
