@@ -132,23 +132,24 @@ int wc_isalpha(unsigned char c) {
  *    1 if read successful
 */
 int wc_readnext(FILE *in, unsigned char *w) {
+
+  int c;
   int num = 0;
-  int c = fgetc(in);
-  while (c != EOF) {
+
+  while ((c = fgetc(in)) != EOF) {
     if (wc_isspace(c) == 0) {
       if (num < MAX_WORDLEN) {
-        //within max wordlen
+        // within max wordlen
         w[num] = (unsigned char) c;
         num++;
       } 
     } else {
-        // if white space
-        if (num > 0) {
-          w[num] = '\0';
-          return 1;
-        }
+      // if white space
+      if (num > 0) {
+        w[num] = '\0';
+        return 1;
+      }
     }
-    c = fgetc(in);
   }
   if (num > 0) {
     // if read
