@@ -68,7 +68,8 @@ wc_str_compare:
 
 	.L_loop: 						/*looping through the string*/
 		movb (%rdi), %r12b			/* Put character from lhs into register */
-    	movb (%rsi), %r13b
+    	movb (%rsi), %r13b			/* Put character from rhs into register */
+
 		cmp $0, %r12b				/*check if lhs is null*/
 		je .L_lhs_null				/* if null, jump to L_lhs_null */
 
@@ -78,8 +79,8 @@ wc_str_compare:
 		cmp %r12b, %r13b				/*compare char value*/
 		jne .L_compare				/* If not equal, jump to compare */
 
-		inc %r12b					/* look at the next chars since curr chars are equal*/
-		inc %r13b					
+		inc %rdi					/* look at the next chars since curr chars are equal*/
+		inc %rsi					
 		jmp .L_loop					/* move to restart loop*/
 	
 	.L_lhs_null:						
