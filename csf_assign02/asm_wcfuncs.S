@@ -67,21 +67,23 @@ wc_str_compare:
 	/* rdi is lhs, rsi is rhs */
 
 	.L_loop: 						/*looping through the string*/
-		cmpq $0, %rdi				/*check if lhs is null*/
+		movb (%rdi), %r12b			/* Put character from lhs into register */
+    	movb (%rsi), %r13b
+		cmp $0, %r12b				/*check if lhs is null*/
 		je .L_lhs_null				/* if null, jump to L_lhs_null */
 
-		cmpq $0, %rsi				/*check if rhs is null if lhs is NOT null*/
+		cmp $0, %r13b				/*check if rhs is null since lhs is NOT null*/
 		je .L_lhs_longer			/* if null, then lhs is longer*/
 
-		cmpq %rdi, %rsi				/*compare char value*/
+		cmp %r12b, %r13b				/*compare char value*/
 		jne .L_compare				/* If not equal, jump to compare */
 
-		incq %rdi					/* look at the next chars since curr chars are equal*/
-		incq %rsi					
+		inc %r12b					/* look at the next chars since curr chars are equal*/
+		inc %r13b					
 		jmp .L_loop					/* move to restart loop*/
 	
 	.L_lhs_null:						
-		cmpq $0, %rsi				/* Check if rhs character is null */
+		cmp $0, %r13b				/* Check if rhs character is null */
 		je .L_equal					/*if true, both lhs and rhs are null*/
 		jne .L_rhs_longer			/* if not, then rhs is longer*/
 		
@@ -98,7 +100,7 @@ wc_str_compare:
 		ret
 
 	.L_compare:					
-		sub %rsi, %rdi				/*comparing individual chars, rhs - lhs = ? */
+		sub %r13b, %r12b				/*comparing individual chars, rhs - lhs = ? */
 		js .L_rhs_longer			/*if negative, then rhs > lhs*/
 		jns .L_lhs_longer			/* if positive, lhs > rhs*/
 
