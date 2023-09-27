@@ -16,22 +16,15 @@
 #include <stdlib.h>
 #include "wcfuncs.h"
 
-// Compute a hash code for the given NUL-terminated
-// character string.
-//
-// The hash algorithm should be implemented as follows:
-//
-// uint32_t hash_code = 5381
-// for each character c of w in order {
-//   hash_code = hash_code * 33 + c
-// }
-//
-// Note that the character values should be treated as
-// being unsigned (in the range 0..255)
-
 /* 
- * 
+ * Computes a hash code for a NUL-terminated character string
  *
+ * Parameters: 
+ *    *w : pointer to the start of the string
+ * 
+ * Returns:
+ * 
+ *    hash code based on the string
 */
 uint32_t wc_hash(const unsigned char *w) {
   uint32_t hash = 5381;
@@ -41,16 +34,19 @@ uint32_t wc_hash(const unsigned char *w) {
   return hash;
 }
 
-// Compare two strings lexicographically. Return
-//
-// - a negative value if lhs string is less than rhs string
-// - 0 if lhs string is identical to rhs string
-// - a positive value if lhs string is greater than rhs string
-//
-// Lexicographical comparison is a generalization of alphabetical
-// order, but using character codes. If one string is a prefix
-// of the other, it is considered as "less than". E.g.,
-// "hi" would compare as less than "high".
+/* 
+ * Compares two strings lexicographically
+ *
+ * Parameters: 
+ *    lhs : pointer to the start of the left handed string
+ *    rhs : pointer to the start of the right handed string
+ * 
+ * Returns:
+ * 
+ *    -1 if lhs string is less than rhs string
+ *    0 if lhs string is identical to rhs string
+ *    1 if lhs string is greater than rhs string
+*/
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
   while ((wc_isspace(*lhs) == 0) || (wc_isspace(*rhs) == 0)){
     if (*lhs == *rhs) { // chars are the same
@@ -63,7 +59,14 @@ int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
   return 0;
 }
 
-// Copy NUL-terminated source string to the destination buffer.
+/* 
+ * Copy NUL-terminated source string to the destination buffer.
+ *
+ * Parameters: 
+ *    dest : pointer to the destination buffer
+ *    source : pointer to the source string 
+ * 
+*/
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
   while (*source != '\0') { // copy every character until terminator
     *dest = *source;
@@ -73,17 +76,17 @@ void wc_str_copy(unsigned char *dest, const unsigned char *source) {
   *(++dest) = '\0'; // add null terminator back
 }
 
-// Return 1 if the character code in c is a whitespace character,
-// false otherwise.
-//
-// For the purposes of this function, a whitespace character is one of
-//
-//   ' '
-//   '\t'
-//   '\r'
-//   '\n'
-//   '\f'
-//   '\v'
+/* 
+ * Return 1 if the character code in c is a whitespace character
+ *
+ * Parameters: 
+ *    c : character to determine if it is a whitespace
+ * 
+ * Returns:
+ *    0 if c is not a whitespace
+ *    1 if c is a whitespace
+ * 
+*/
 int wc_isspace(unsigned char c) {
   switch (c) {
     case ' ':
@@ -99,8 +102,17 @@ int wc_isspace(unsigned char c) {
   }
 }
 
-// Return 1 if the character code in c is an alphabetic character
-// ('A' through 'Z' or 'a' through 'z'), 0 otherwise.
+/* 
+ * Checks if character code is an alphabetic character
+ *
+  * Parameters: 
+ *    c : character to determine if it is an alphabetic character
+ * 
+ * Returns:
+ *    0 if c is not an alphabetic character
+ *    1 if c is an alphabetic character
+ * 
+*/
 int wc_isalpha(unsigned char c) {
   if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) { 
     return 1;
@@ -108,17 +120,17 @@ int wc_isalpha(unsigned char c) {
   return 0;
 }
 
-// Read the next word from given input stream, storing
-// the word in the array pointed-to by w. (This array should be
-// assumed to be MAX_WORDLEN+1 elements in size.) Return 1
-// if a word is read successfully, 0 otherwise.
-//
-// For the purposes of this function, a word is a sequence of
-// 1 or more non-whitespace characters.
-//
-// If a sequence of non-whitespace characters has more than
-// MAX_WORDLEN characters, then only the first MAX_WORDLEN
-// characters in the sequence should be stored in the array.
+/* 
+ * Reads next word in the input stream and stores it
+ *
+ * Parameters: 
+ *    in : input stream
+ *     w : array of strings to store the next word in
+ * 
+ * Returns:
+ *    0 if read unsuccessful
+ *    1 if read successful
+*/
 int wc_readnext(FILE *in, unsigned char *w) {
   int num = 0;
   int c = fgetc(in);
@@ -147,8 +159,13 @@ int wc_readnext(FILE *in, unsigned char *w) {
   //not read
 }
 
-// Convert the NUL-terminated character string in the array
-// pointed-to by w so that every letter is lower-case.
+/* 
+ * Convert string to lowercase
+ *
+ * Parameters: 
+ *    w : pointer to the string 
+ * 
+*/
 void wc_tolower(unsigned char *w) {
   for (int i = 0; w[i]; i++) {
     if (w[i] >= 'A' && w[i] <= 'Z') {
@@ -157,8 +174,13 @@ void wc_tolower(unsigned char *w) {
   }
 }
 
-// Remove any non-alphaabetic characters from the end of the
-// NUL-terminated character string pointed-to by w.
+/* 
+ * Trim string of non-alphabetic characters
+ *
+ * Parameters: 
+ *    w : string to trim
+ * 
+*/
 void wc_trim_non_alpha(unsigned char *w) {
   //edge case
   if (w == NULL || *w == '\0') {
@@ -188,6 +210,14 @@ void wc_trim_non_alpha(unsigned char *w) {
 // by inserted to 1, and return a pointer to the new node. Note that
 // the new node should have its count value set to 0. (It is the caller's
 // job to update the count.)
+/* 
+ * Search the specified linked list of WordEntry objects for an object containing the specified string.
+ *
+ * Parameters: 
+ * 
+ * Returns:
+ * 
+*/
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   // TODO: implement
 }
@@ -199,11 +229,27 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
 //
 // Returns a pointer to the WordEntry object in the appropriate linked list
 // which represents s.
+/* 
+ * Find/insert the WordEntry object for the given string
+ *
+ * Parameters: 
+ * 
+ * Returns:
+ * 
+ * 
+*/
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {
   // TODO: implement
 }
 
-// Free all of the nodes in given linked list of WordEntry objects.
+/* 
+ * Free all the nodes in a given linkedlist of WordEntry objects
+ *
+ * Parameters: 
+ *    p : pointer to the WordEntry struct
+ * 
+ * 
+*/
 void wc_free_chain(struct WordEntry *p) {
   //create pointer, free curr, go to next
   while (p != NULL) {
