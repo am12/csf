@@ -128,6 +128,8 @@ void test_str_copy(TestObjs *objs) {
 
   wc_str_copy(buf, objs->test_str_1);
   ASSERT(0 == strcmp((const char *) objs->test_str_1, (const char *) buf));
+  wc_str_copy(buf, objs->test_str_4);
+  ASSERT(0 == strcmp((const char *) objs->test_str_4, (const char *) buf));
 }
 
 void test_isspace(TestObjs *objs) {

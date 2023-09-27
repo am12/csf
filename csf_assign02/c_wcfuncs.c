@@ -53,10 +53,10 @@ uint32_t wc_hash(const unsigned char *w) {
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
   while ((wc_isspace(*lhs) == 0) || (wc_isspace(*rhs) == 0)){
-    if (*lhs == *rhs) {
+    if (*lhs == *rhs) { // chars are the same
       lhs++;
       rhs++;
-    } else if ((*lhs == '\0' && *rhs != '\0') || (*lhs != '\0' && *rhs == '\0') || (*lhs != *rhs)) {
+    } else if (*lhs == '\0' || *rhs == '\0' || *lhs != *rhs) { // chars not same, or reached end 
       return *lhs - *rhs;
     } 
   }
@@ -65,11 +65,12 @@ int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
 
 // Copy NUL-terminated source string to the destination buffer.
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
-  while (wc_isspace(*source) == 0) {
+  while (*source != '\0') { // copy every character until terminator
     *dest = *source;
     dest++;
     source++;
   }
+  *(++dest) = '\0'; // add null terminator back
 }
 
 // Return 1 if the character code in c is a whitespace character,
@@ -101,10 +102,7 @@ int wc_isspace(unsigned char c) {
 // Return 1 if the character code in c is an alphabetic character
 // ('A' through 'Z' or 'a' through 'z'), 0 otherwise.
 int wc_isalpha(unsigned char c) {
-  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-    if (c >= '0' && c <= '9') {
-      return 0;
-    }
+  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) { 
     return 1;
   }
   return 0;
@@ -154,7 +152,7 @@ int wc_readnext(FILE *in, unsigned char *w) {
 void wc_tolower(unsigned char *w) {
   for (int i = 0; w[i]; i++) {
     if (w[i] >= 'A' && w[i] <= 'Z') {
-      w[i] += 32;
+      w[i] += 32; // moves ASCII value of uppercase char to lowercase values
     }
   }
 }
