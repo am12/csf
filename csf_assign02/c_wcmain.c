@@ -21,29 +21,61 @@ int main(int argc, char **argv) {
   const unsigned char *best_word = (const unsigned char *) "";
   uint32_t best_word_count = 0;
 
-  // TODO: implement
+  // read file input, use stdin if file not provided
+  FILE *file;
+  if (argc == 2) {
+    file = fopen(argv[1], "r");
+    if (file == NULL) {
+        fprintf(stderr, "Could not open given file\n");
+        return 1;
+    }
+  } else if (argc == 1) {
+    file = stdin;
+  } else {
+    fprintf(stderr, "Usage: %s [filename]\n", argv[0]);
+    return 1;
+  }
 
-//   while ( next word is read successfully using wc_readnext ) {
-//   increase total word count by 1
+  char word[MAX_WORDLEN];
+  struct WordEntry * word_table[HASHTABLE_SIZE];
+  int max_count = 0;
 
-//   use wc_tolower to convert word to lower case
+  // initialize the word hash table
+  for (int i = 0; i < HASHTABLE_SIZE; i++) {
+      word_table[i] = NULL;
+  }
 
-//   use wc_trim_non_alpha to remove non-alphabetic characters at end of word
+  // main body to enter words into hash table
+  while (wc_readnext(file, word)) {
+      total_words++; // increment total number of words
+      wc_tolower(word); // convert to lowercase
+      wc_trim_non_alpha(word); // trim word
+      struct WordEntry * entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
+  }
 
-//   use wc_dict_find_or_insert to find or insert the word in the hash table
+  // find the total number of unique words and best word/count
 
-//   increment the WordEntry's count
-// }
 
+
+  // print statistics
   printf("Total words read: %u\n", (unsigned int) total_words);
   printf("Unique words read: %u\n", (unsigned int) unique_words);
   printf("Most frequent word: %s (%u)\n", (const char *) best_word, best_word_count);
 
-  // TODO: make sure file is closed (if one was opened)
-
-
+  // free allocated memory for word entries (cleanup)
+  for (int i = 0; i < HASHTABLE_SIZE; i++) {
+      struct WordEntry * current = word_table[i];
+      while (current != NULL) {
+          struct WordEntry * temp = current;
+          current = current->next;
+          free(temp);
+      }
+  }
   
-  // TODO: make sure memory is freed
+  // make sure file is closed (if one was opened)
+  if (file != stdin) {
+    fclose(file);
+  }
 
   return 0;
 }
