@@ -202,6 +202,11 @@ void test_trim_non_alpha(TestObjs *objs) {
   ASSERT(0 == strcmp("O_O...", (const char *) buf));
   wc_trim_non_alpha(buf);
   ASSERT(0 == strcmp("O_O", (const char *) buf));
+
+//   unsigned char *test1 = (unsigned char *) "12345!";
+//   wc_trim_non_alpha(test1);
+//   printf("%s\n", test1);
+//   ASSERT(0 == strcmp("", (const char *) test1));
 }
 
 void test_find_or_insert(TestObjs *objs) {
