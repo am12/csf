@@ -213,7 +213,7 @@ void wc_trim_non_alpha(unsigned char *w) {
 */
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   // search through bucket list for matching WordEntry
-  struct WordEntry* current = head;
+  struct WordEntry *current = head;
   while (current != NULL) {
     if (wc_str_compare(current->word, s) == 0) {
       *inserted = 0;
