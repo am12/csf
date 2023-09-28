@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     wc_tolower(word); // convert to lowercase
     wc_trim_non_alpha(word); // trim word
     struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
-    entry->count++; // increment WordEntry count   
+    ++entry->count; // increment WordEntry count   
   }
 
   // gather summary statistics
