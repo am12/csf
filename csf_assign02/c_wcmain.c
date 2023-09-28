@@ -97,7 +97,7 @@ void load_table(FILE *file, struct WordEntry **word_table, uint32_t *total_words
 }
 
 /* 
- * Loads the words of given file into the hash table of words, keeping track of total count
+ * Gathers summary statistics for a given hash table of words
  *
  * Parameters: 
  *    word_table : the hash table of words
@@ -107,7 +107,7 @@ void load_table(FILE *file, struct WordEntry **word_table, uint32_t *total_words
  * 
 */
 void get_stats(struct WordEntry **word_table, uint32_t *unique_words, const unsigned char **best_word, uint32_t *best_word_count) {
-  // gather summary statistics
+  // iterate over whole table, keeping track of best word and counting unique words
   for (int i = 0; i < HASHTABLE_SIZE; i++) {
     struct WordEntry *current = word_table[i];
     while (current != NULL) {

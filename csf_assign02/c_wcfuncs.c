@@ -246,8 +246,11 @@ struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned n
   // calculate the index in the hash table and plug into find or insert function
   int hash = wc_hash(s) % num_buckets;
   int inserted;
-  buckets[hash] = wc_find_or_insert(buckets[hash], s, &inserted);
-  return buckets[hash];
+  struct WordEntry *word = wc_find_or_insert(buckets[hash], s, &inserted); // set the element at this index to the new head node
+  if (inserted) {
+    buckets[hash] = word; // if new node, update head of list (otherwise, head doesn't change)
+  }
+  return word;
 }
 
 /* 
