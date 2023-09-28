@@ -13,7 +13,10 @@
 // Suggested number of buckets for the hash table
 #define HASHTABLE_SIZE 13249
 
-// TODO: prototypes for helper functions
+
+void load_table(FILE *file, struct WordEntry **word_table, uint32_t *total_words);
+void get_stats(struct WordEntry **word_table, uint32_t *unique_words, const unsigned char **best_word, uint32_t *best_word_count);
+
 
 int main(int argc, char **argv) {
   // stats (to be printed at end)
@@ -37,42 +40,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // define variables for main loop
-  unsigned char word[MAX_WORDLEN + 1];
+  // define hash table of WordEntry elements and load the table
   struct WordEntry *word_table[HASHTABLE_SIZE];
-
-  // initialize the word hash table
-  for (int i = 0; i < HASHTABLE_SIZE; i++) {
-    word_table[i] = NULL;
-  }
-
-  // main body to enter words into hash table
-  while (wc_readnext(file, word)) {
-    total_words++; // increment total number of words
-    wc_tolower(word); // convert to lowercase
-    wc_trim_non_alpha(word); // trim word
-    struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
-    entry->count += 1; // increment WordEntry count   
-    //printf("%d\n", entry->count);   
-  }
+  load_table(file, word_table, &total_words);
   
-  // gather summary statistics
-  for (int i = 0; i < HASHTABLE_SIZE; i++) {
-    struct WordEntry *current = word_table[i];
-    //printf("%s \n", current->word);
-    while (current != NULL) {
-      unique_words++;
-      if (current->count >= best_word_count || (current->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
-        best_word_count = current->count;
-        best_word = current->word;
-        //printf("%s %s \n", current->word,best_word);
-        //printf("%d %d \n", current->count,best_word_count);
-      }
-      current = current->next;
-    } 
-  }
-
-  // print statistics
+  // get and print statistics
+  get_stats(word_table, &unique_words, &best_word, &best_word_count);
   printf("Total words read: %u\n", (unsigned int) total_words);
   printf("Unique words read: %u\n", (unsigned int) unique_words);
   printf("Most frequent word: %s (%u)\n", (const char *) best_word, best_word_count);
@@ -95,4 +68,55 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-// TODO: definitions of helper functions
+/* 
+ * Loads the words of given file into the hash table of words, keeping track of total count
+ *
+ * Parameters: 
+ *    file : pointer to file where input is contained
+ *    word_table : the hash table of words
+ *    total_words : total number of words read in
+ * 
+*/
+void load_table(FILE *file, struct WordEntry **word_table, uint32_t *total_words) {
+  // variable for a word to be read in
+  unsigned char word[MAX_WORDLEN + 1];
+
+  // initialize the word hash table to null values
+  for (int i = 0; i < HASHTABLE_SIZE; i++) {
+    word_table[i] = NULL;
+  }
+
+  // main body to enter words into hash table
+  while (wc_readnext(file, word)) {
+    (*total_words)++; // increment total number of words
+    wc_tolower(word); // convert to lowercase
+    wc_trim_non_alpha(word); // trim word
+    struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
+    ++entry->count; // increment WordEntry count
+  }
+}
+
+/* 
+ * Loads the words of given file into the hash table of words, keeping track of total count
+ *
+ * Parameters: 
+ *    word_table : the hash table of words
+ *    unique_words : total number of unique words found
+ *    best_word : the word that occurs most frequently
+ *    best_word_count : the count of the most frequent word
+ * 
+*/
+void get_stats(struct WordEntry **word_table, uint32_t *unique_words, const unsigned char **best_word, uint32_t *best_word_count) {
+  // gather summary statistics
+  for (int i = 0; i < HASHTABLE_SIZE; i++) {
+    struct WordEntry *current = word_table[i];
+    while (current != NULL) {
+      (*unique_words)++;
+      if (current->count >= *best_word_count || (current->count == *best_word_count && wc_str_compare(current->word, *best_word) < 0)) { // check for highest occurring word
+        *best_word_count = current->count;
+        *best_word = current->word;
+      }
+      current = current->next;
+    } 
+  }
+}

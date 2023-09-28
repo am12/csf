@@ -217,7 +217,6 @@ void test_find_or_insert(TestObjs *objs) {
   list = p;
   ASSERT(p != NULL);
   ASSERT(0 == strcmp("avis", (const char *) p->word));
-  printf('%c',p->word) ;
   ASSERT(0 == p->count);
   ++p->count;
 

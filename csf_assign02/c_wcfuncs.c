@@ -195,13 +195,8 @@ void wc_trim_non_alpha(unsigned char *w) {
   while (w[len] != '\0') { // find end of word
     len++;
   }
-  do { // search backwards until first alpha char
-    len--;
-  } while (len >= 0 && !wc_isalpha(w[len]));
-  if (len < 0) {
-    *w = '\0'; // if all non-alpha, then return empty string
-  } else {
-    w[len+1] = '\0'; // terminate when found
+  while (len > 0 && !wc_isalpha(w[len-1])) { // search backwards until first alpha char
+    w[--len] = '\0'; // remove non-alpha chars
   }
 }
 
@@ -213,7 +208,8 @@ void wc_trim_non_alpha(unsigned char *w) {
  *    s : string to be added 
  *    inserted : 1 if inserted, 0 if not 
  * Returns:
- *    struct pointer of the word found or inserted
+ *    struct pointer to the WordEntry found or inserted
+ * 
 */
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   // search through bucket list for matching WordEntry
@@ -221,7 +217,6 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
   while (current != NULL) {
     if (wc_str_compare(current->word, s) == 0) {
       *inserted = 0;
-      
       return current; // word found, return
     }
     current = current->next;
@@ -244,7 +239,7 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
  *    s : string
  * 
  * Returns:
- *    struct pointer of the word found
+ *    struct pointer to the WordEntry found
  * 
 */
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {
@@ -256,11 +251,10 @@ struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned n
 }
 
 /* 
- * Free all the nodes in a given linkedlist of WordEntry objects
+ * Free all the nodes in a given linked list of WordEntry objects
  *
  * Parameters: 
  *    p : pointer to the WordEntry struct
- * 
  * 
 */
 void wc_free_chain(struct WordEntry *p) {
