@@ -174,7 +174,7 @@ wc_isspace:
 	.globl wc_isalpha
 wc_isalpha:
 	cmpq $65, %rdi			/*checks if c is possibly anything below 'A'*/
-	jle .L_isNot			/*if its lower, then it is not alphabetic*/
+	jl .L_isNot			/*if its lower, then it is not alphabetic*/
 	jge .L_highA			/*if its higher it can be alphabetic or a symbol*/
 
 	.L_highA:
@@ -184,13 +184,13 @@ wc_isalpha:
 
 	.L_checklower:
 		cmpq $97, %rdi
-		jle .L_isNot		/*if its lower, then it is a symbol*/
+		jl .L_isNot		/*if its lower, then it is a symbol*/
 		jge .L_highlowZ		/*if its higher, it can be a lowercase letter*/
 	
 	.L_highlowZ:
 		cmpq $122, %rdi
 		jle .L_isAlpha		/*if its lower, it is a lowercase letter*/
-		jge .L_isNot		/*if its greater, then it is not alphabetic*/
+		jg .L_isNot		/*if its greater, then it is not alphabetic*/
 
 	.L_isNot:
 		xor %rax, %rax		/*return 0*/

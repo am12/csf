@@ -205,25 +205,15 @@ void wc_trim_non_alpha(unsigned char *w) {
   }
 }
 
-// Search the specified linked list of WordEntry objects for an object
-// containing the specified string.
-//
-// If a matching object is found, set the int variable pointed-to by
-// inserted to 0 and return a pointer to the matching object.
-//
-// If a matching object is not found, allocate a new WordEntry object,
-// set its next pointer to point to what head points to (i.e., so the
-// new object is at the head of the list), set the variable pointed-to
-// by inserted to 1, and return a pointer to the new node. Note that
-// the new node should have its count value set to 0. (It is the caller's
-// job to update the count.)
 /* 
  * Search the specified linked list of WordEntry objects for an object containing the specified string.
  *
  * Parameters: 
- * 
+ *    head : start of struct 
+ *    s : string to be added 
+ *    inserted : 1 if inserted, 0 if not 
  * Returns:
- * 
+ *    struct pointer of the word found or inserted
 */
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   // search through bucket list for matching WordEntry
@@ -231,6 +221,7 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
   while (current != NULL) {
     if (wc_str_compare(current->word, s) == 0) {
       *inserted = 0;
+      
       return current; // word found, return
     }
     current = current->next;
@@ -244,20 +235,16 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
   return new;
 }
 
-// Find or insert the WordEntry object for the given string (s), returning
-// a pointer to it. The head of the linked list which contains (or should
-// contain) the entry for s is the element of buckets whose index is the
-// hash code of s mod num_buckets.
-//
-// Returns a pointer to the WordEntry object in the appropriate linked list
-// which represents s.
 /* 
  * Find/insert the WordEntry object for the given string
  *
  * Parameters: 
+ *    buckets : wordEntry struct array
+ *    num_buckets: number of buckets
+ *    s : string
  * 
  * Returns:
- * 
+ *    struct pointer of the word found
  * 
 */
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {

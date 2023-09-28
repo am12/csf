@@ -52,19 +52,23 @@ int main(int argc, char **argv) {
     wc_tolower(word); // convert to lowercase
     wc_trim_non_alpha(word); // trim word
     struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
-    ++entry->count; // increment WordEntry count   
-    printf("%d\n", entry->count);
+    entry->count += 1; // increment WordEntry count   
+    //printf("%d\n", entry->count);   
   }
-
+  
   // gather summary statistics
   for (int i = 0; i < HASHTABLE_SIZE; i++) {
     struct WordEntry *current = word_table[i];
+    //printf("%s \n", current->word);
     while (current != NULL) {
       unique_words++;
-      if (current->count > best_word_count || (current->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
+      if (current->count >= best_word_count || (current->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
         best_word_count = current->count;
         best_word = current->word;
+        //printf("%s %s \n", current->word,best_word);
+        //printf("%d %d \n", current->count,best_word_count);
       }
+      current = current->next;
     } 
   }
 
