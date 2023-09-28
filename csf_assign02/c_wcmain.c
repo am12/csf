@@ -52,14 +52,19 @@ int main(int argc, char **argv) {
     wc_tolower(word); // convert to lowercase
     wc_trim_non_alpha(word); // trim word
     struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
+    entry->count++; // increment WordEntry count   
+  }
 
-    if (entry->count == 1) { // if new word, increment
+  // gather summary statistics
+  for (int i = 0; i < HASHTABLE_SIZE; i++) {
+    struct WordEntry *current = word_table[i];
+    while (current != NULL) {
       unique_words++;
-    }
-    if (entry->count > best_word_count || (entry->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
-      best_word_count = entry->count;
-      best_word = entry->word;
-    }
+      if (current->count > best_word_count || (current->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
+        best_word_count = current->count;
+        best_word = current->word;
+      }
+    } 
   }
 
   // print statistics

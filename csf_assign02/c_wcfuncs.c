@@ -218,7 +218,22 @@ void wc_trim_non_alpha(unsigned char *w) {
  * 
 */
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
-  // TODO: implement
+  // search through bucket list for matching WordEntry
+  struct WordEntry* current = head;
+  while (current != NULL) {
+    if (wc_str_compare(current->word, s) == 0) {
+      *inserted = 0;
+      return current; // word found, return
+    }
+    current = current->next;
+  }
+  // word not found, create new WordEntry representing word
+  struct WordEntry *new = (struct WordEntry *) malloc(sizeof(struct WordEntry));
+  wc_str_copy(new->word, s);
+  new->count = 0;
+  new->next = head; // prepend to list and return
+  *inserted = 1;
+  return new;
 }
 
 // Find or insert the WordEntry object for the given string (s), returning
@@ -238,7 +253,11 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
  * 
 */
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {
-  // TODO: implement 
+  // calculate the index in the hash table and plug into find or insert function
+  int hash = wc_hash(s) % num_buckets;
+  int inserted;
+  buckets[hash] = wc_find_or_insert(buckets[hash], s, &inserted);
+  return buckets[hash];
 }
 
 /* 
