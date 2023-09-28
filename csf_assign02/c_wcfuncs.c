@@ -48,7 +48,7 @@ uint32_t wc_hash(const unsigned char *w) {
  *    1 if lhs string is greater than rhs string
 */
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  while ((wc_isspace(*lhs) == 0) || (wc_isspace(*rhs) == 0)){
+  while (!wc_isspace(*lhs) || !wc_isspace(*rhs)){
     if (*lhs == *rhs) { // chars are the same
       lhs++;
       rhs++;
@@ -137,27 +137,24 @@ int wc_readnext(FILE *in, unsigned char *w) {
   int num = 0;
 
   while ((c = fgetc(in)) != EOF) {
-    if (wc_isspace(c) == 0) {
-      if (num < MAX_WORDLEN) {
-        // within max wordlen
+    if (!wc_isspace(c)) {
+      if (num < MAX_WORDLEN) { // within max wordlen, add char to word
         w[num] = (unsigned char) c;
         num++;
       } 
-    } else {
-      // if white space
-      if (num > 0) {
-        w[num] = '\0';
-        return 1;
+    } else { // it is whitespace
+      if (num > 0) { // word was encountered
+        w[num] = '\0'; 
+        return 1; // success
       }
     }
   }
-  if (num > 0) {
-    // if read
-    w[num] = '\0';
-    return 1;
+  if (num > 0) { // reached the max length and word found 
+    w[num] = '\0'; 
+    return 1; // success
   }
-  return 0;
-  //not read
+
+  return 0; // no word found
 }
 
 /* 
@@ -183,20 +180,21 @@ void wc_tolower(unsigned char *w) {
  * 
 */
 void wc_trim_non_alpha(unsigned char *w) {
-  //edge case
-  if (w == NULL || *w == '\0') {
+  int len = 0;
+  if (w == NULL || *w == '\0') { // given edge cases (null value or terminator)
     return;
   }
-  //find first null character
-  while (*w != '\0') {
-    w++;
+  while (w[len] != '\0') { // find end of word
+    len++;
   }
-  //go back to the last alphabetic character
-  w--;
-  while (!wc_isalpha(*w)) {
-    w--;
+  do { // search backwards until first alpha char
+    len--;
+  } while (len >= 0 && !wc_isalpha(w[len]));
+  if (len < 0) {
+    *w = '\0'; // if all non-alpha, then return empty string
+  } else {
+    w[len+1] = '\0'; // terminate when found
   }
-  *(w + 1) = '\0';
 }
 
 // Search the specified linked list of WordEntry objects for an object
