@@ -112,7 +112,7 @@ void get_stats(struct WordEntry **word_table, uint32_t *unique_words, const unsi
     struct WordEntry *current = word_table[i];
     while (current != NULL) {
       (*unique_words)++;
-      if (current->count >= *best_word_count || (current->count == *best_word_count && wc_str_compare(current->word, *best_word) < 0)) { // check for highest occurring word
+      if (current->count > *best_word_count || (current->count == *best_word_count && wc_str_compare(current->word, *best_word) < 0)) { // check for highest occurring word
         *best_word_count = current->count;
         *best_word = current->word;
       }
