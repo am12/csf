@@ -48,15 +48,23 @@ uint32_t wc_hash(const unsigned char *w) {
  *    1 if lhs string is greater than rhs string
 */
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  while (!wc_isspace(*lhs) || !wc_isspace(*rhs)){
-    if (*lhs == *rhs) { // chars are the same
+  while (*lhs != '\0' && *rhs != '\0') {
+      if (*lhs != *rhs) {
+        return *lhs - *rhs; // difference returned
+      } 
       lhs++;
       rhs++;
-    } else if (*lhs == '\0' || *rhs == '\0' || *lhs != *rhs) { // chars not same, or reached end 
-      return *lhs - *rhs;
-    } 
-  }
-  return 0;
+    }
+
+    // when one string is shorter than other 
+    if (*lhs == '\0' && *rhs != '\0') {
+        return -1; // lhs shorter
+    } else if (*lhs != '\0' && *rhs == '\0') {
+        return 1;  // rhs shorter
+    }
+
+    // strings are identical
+    return 0;
 }
 
 /* 
@@ -73,7 +81,7 @@ void wc_str_copy(unsigned char *dest, const unsigned char *source) {
     dest++;
     source++;
   }
-  *(++dest) = '\0'; // add null terminator back
+  *dest = '\0'; // add null terminator back
 }
 
 /* 
