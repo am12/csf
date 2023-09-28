@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "wcfuncs.h"
 
 // Suggested number of buckets for the hash table
@@ -26,8 +27,8 @@ int main(int argc, char **argv) {
   if (argc == 2) {
     file = fopen(argv[1], "r");
     if (file == NULL) {
-        fprintf(stderr, "Could not open given file\n");
-        return 1;
+      fprintf(stderr, "Could not open given file\n");
+      return 1;
     }
   } else if (argc == 1) {
     file = stdin;
@@ -36,26 +37,30 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  char word[MAX_WORDLEN];
-  struct WordEntry * word_table[HASHTABLE_SIZE];
-  int max_count = 0;
+  // define variables for main loop
+  unsigned char word[MAX_WORDLEN + 1];
+  struct WordEntry *word_table[HASHTABLE_SIZE];
 
   // initialize the word hash table
   for (int i = 0; i < HASHTABLE_SIZE; i++) {
-      word_table[i] = NULL;
+    word_table[i] = NULL;
   }
 
   // main body to enter words into hash table
   while (wc_readnext(file, word)) {
-      total_words++; // increment total number of words
-      wc_tolower(word); // convert to lowercase
-      wc_trim_non_alpha(word); // trim word
-      struct WordEntry * entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
+    total_words++; // increment total number of words
+    wc_tolower(word); // convert to lowercase
+    wc_trim_non_alpha(word); // trim word
+    struct WordEntry *entry = wc_dict_find_or_insert(word_table, HASHTABLE_SIZE, word); // find or insert word in hash table
+
+    if (entry->count == 1) { // if new word, increment
+      unique_words++;
+    }
+    if (entry->count > best_word_count || (entry->count == best_word_count && wc_str_compare(word, best_word) < 0)) { // check for highest occurring word
+      best_word_count = entry->count;
+      best_word = entry->word;
+    }
   }
-
-  // find the total number of unique words and best word/count
-
-
 
   // print statistics
   printf("Total words read: %u\n", (unsigned int) total_words);
@@ -64,12 +69,12 @@ int main(int argc, char **argv) {
 
   // free allocated memory for word entries (cleanup)
   for (int i = 0; i < HASHTABLE_SIZE; i++) {
-      struct WordEntry * current = word_table[i];
-      while (current != NULL) {
-          struct WordEntry * temp = current;
-          current = current->next;
-          free(temp);
-      }
+    struct WordEntry *current = word_table[i];
+    while (current != NULL) {
+      struct WordEntry *temp = current;
+      current = current->next;
+      free(temp);
+    }
   }
   
   // make sure file is closed (if one was opened)
