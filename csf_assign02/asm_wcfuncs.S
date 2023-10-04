@@ -44,8 +44,23 @@
  */
 	.globl wc_hash
 wc_hash:
-	/* TODO: implement */
-	ret
+	movq $5381, %r10
+	subq $8, %rsp
+	.L_ifhash:
+		movq $0, %r11		/* reset character value */
+		movb (%rdi), %r11b	/* move current character value into %r11b */
+		cmpb $0, %r11b		/* if curr char is null*/
+		je .L_hashd			/* return current hash if null*/
+							/* calculate if not null*/
+		imulq $33, %r10		/* multiply hash by 33 */
+		addq %r11, %r10		/* add calculated hash to current hash*/
+		incq %rdi			/* move to next char */
+		jmp .L_ifhash
+
+	.L_hashd:
+		movq %r10, %rax
+		addq $8, %rsp
+		ret
 
 /*
  * Compare two strings lexicographically. Return
@@ -65,7 +80,7 @@ wc_hash:
 	.globl wc_str_compare
 wc_str_compare:
 	/* rdi is lhs, rsi is rhs */
-
+	subq $8, %rsp
 	.L_loop: 						/*looping through the string*/
 		movb (%rdi), %r12b			/* Put character from lhs into register */
     	movb (%rsi), %r13b			/* Put character from rhs into register */
@@ -90,14 +105,17 @@ wc_str_compare:
 		
 	.L_rhs_longer:					/*rhs is longer, return -1*/
 		mov $-1, %eax
+		addq $8, %rsp
 		ret
 
 	.L_lhs_longer:					/*lhs is longer, return 1*/
 		mov $1, %eax
+		addq $8, %rsp
 		ret
 
 	.L_equal:						/* if strings are the same */
 		mov $0, %eax
+		addq $8, %rsp
 		ret
 
 	.L_compare:					
@@ -134,6 +152,7 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
+	subq $8, %rsp
 	cmpq $9, %rdi		/*cmp '\t'*/
 	je .L_space			/*jump if equal*/
 
@@ -156,11 +175,13 @@ wc_isspace:
 	
 	.L_not_space:		/*is not space*/
 		xor %rax, %rax 	/*clear eax*/
+		addq $8, %rsp
 		ret
 
 	.L_space:			/*is space*/
 		xor %rax, %rax
 		mov $1, %rax	/*move 1 to return*/
+		addq $8, %rsp
 		ret
 
 
@@ -231,8 +252,30 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
-	/* TODO: implement */
-	ret
+	subq $8, %rsp
+
+	.L_ifnull:
+		movb (%rdi), %r10b	/* move current character value into %r11b */
+		cmpb $0, %r10b		/* if curr char is null*/
+		je .L_retlow		/* return current hash if null*/
+	
+		cmpb $65, %r10b		/* if greater or equal, it might be upper*/
+		jl .L_next			/* if less than, it is not upper*/
+		cmpb $90, %r10b		/* if less than or equal, it is upper*/
+		jg .L_next			/* if greater, it is not upper*/
+
+		addb $32, %r10b		/* change char to lowercase */
+		movb %r10b, (%rdi)	/* move char back*/
+		jmp .L_ifnull
+
+	.L_next:
+		incq %rdi
+		jmp .L_ifnull
+
+	.L_retlow:
+		addq $8, %rsp
+		ret
+
 
 /*
  * Remove any non-alphaabetic characters from the end of the
