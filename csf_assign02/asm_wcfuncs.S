@@ -199,26 +199,24 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	subq $8, %rsp			/* align stack */
-
 	cmpq $65, %rdi			/* checks if c is possibly anything below 'A'*/
 	jl .L_isNot				/* if its lower, then it is not alphabetic */
 	jge .L_highA			/* if its higher it can be alphabetic or a symbol */
 
-.L_highA:
-	cmpq $90, %rdi
-	jle .L_isAlpha			/* if its lower, then it is an uppercase letter */
-	jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
+	.L_highA:
+		cmpq $90, %rdi
+		jle .L_isAlphab			/* if its lower, then it is an uppercase letter */
+		jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
 
-.L_checklower:
-	cmpq $97, %rdi
-	jl .L_isNot				/* if its lower, then it is a symbol */
-	jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
+	.L_checklower:
+		cmpq $97, %rdi
+		jl .L_isNotA				/* if its lower, then it is a symbol */
+		jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
 
-.L_highlowZ:
-	cmpq $122, %rdi
-	jle .L_isAlpha			/* if its lower, it is a lowercase letter */
-	jg .L_isNot				/* if its greater, then it is not alphabetic */
+	.L_highlowZ:
+		cmpq $122, %rdi
+		jle .L_isAlphab			/* if its lower, it is a lowercase letter */
+		jg .L_isNotA				/* if its greater, then it is not alphabetic */
 
 	.L_isNot:
 		xor %rax, %rax		/*return 0*/
@@ -228,16 +226,14 @@ wc_isalpha:
 		xor %rax, %rax
 		incq %rax		/*return 1*/
 		ret
-.L_isNot:
-	xorq %rax, %rax
-	addq $8, %rsp			/* restore stack */
-	ret						/* return 0 */
+	.L_isNotA:
+		xorq %rax, %rax
+		ret						/* return 0 */
 
-.L_isAlpha:
-	xorq %rax, %rax
-	addq $8, %rsp 			/* restore stack */
-	movq $1, %rax			/* return 1 */
-	ret		
+	.L_isAlphab:
+		xorq %rax, %rax
+		movq $1, %rax			/* return 1 */
+		ret		
 
 
 /*
@@ -330,11 +326,6 @@ wc_trim_non_alpha:
 	.L_removed:
 		addq $8, %rsp
 		ret
-
-	
-
-	/* TODO: implement */
-	ret
 
 
 /*
