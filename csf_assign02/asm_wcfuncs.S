@@ -219,7 +219,7 @@ wc_isalpha:
 	
 	.L_isAlpha:
 		xor %rax, %rax
-		mov $1, %rax		/*return 1*/
+		incq %rax		/*return 1*/
 		ret
 
 /*
@@ -269,7 +269,7 @@ wc_tolower:
 		jmp .L_ifnull
 
 	.L_next:
-		incq %rdi
+		incq %rdi			/*go to next*/
 		jmp .L_ifnull
 
 	.L_retlow:
@@ -286,8 +286,32 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	/* TODO: implement */
-	ret
+	subq $8, %rsp
+
+	.L_find_null:
+		movb (%rdi), %r10b	/* move current character value into %r11b */
+		cmpb $0, %r10b		/* if curr char is null*/
+		je .L_found_null	/* found null*/
+
+		incq %rdi 			/*keep going if not found*/
+		jmp .L_find_null
+
+	.L_found_null:
+		dec %rdi
+		call wc_isalpha
+		cmpb $1, %al
+		je .L_removed
+		jne .L_remove_non
+
+	.L_remove_non:
+		movb %r10b, (%rdi)
+		jmp .L_found_null
+
+	.L_removed:
+		addq $8, %rsp
+		ret
+
+	
 
 /*
  * Search the specified linked list of WordEntry objects for an object
