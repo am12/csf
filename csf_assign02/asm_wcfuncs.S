@@ -259,49 +259,52 @@ wc_isalpha:
 	.globl wc_readnext
 wc_readnext:
 	subq $8, %rsp
-	pushq %r12				/* save r12 */
-	pushq %r13				/* save r13 */
-	pushq %r14				/* save r14 */
-	movq %rdi, %r12			/* r12 is file pointer */
-	movq %rsi, %r13 		/* r13 is the string containing the returned word */
-	movq $0, %r14			/* 0 is the return value */
-	
-    xorq    %rax, %rax      /* initialize return value to 0 (unsuccessful) */
-    movq	$0, %r10       	/* Initialize num to 0 */
+
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %rbx					/* save rbx */
+
+	movq %rdi, %r12				/* r12 is file pointer */
+	movq %rsi, %r13 			/* r13 is the string containing the returned word */
+	movq $0, %rbx				/* rbx is the return value, initialized with 0 */
+    movq $0, %r10       		/* r10 is length of word read, initialize to 0 */
 	
 .L_loop_read:
 
-    call    fgetc            /* call the fgetc function to read a character into %al */
-    cmpq   	$-1, %rax	     /* check if EOF */
-    je      .L_done_read     /* if EOF, done */
+    call fgetc            		/* call the fgetc function to read a character into %al */
+    cmpq $-1, %rax	      		/* check if EOF */
+    je .L_done_read       		/* if EOF, done */
 
-    call    wc_isspace       /* Call the wc_isspace function to check if it's whitespace */
-    testb   %al, %al         /* Check the result */
-    jnz     .skip_whitespace  /* If not whitespace, skip to .skip_whitespace */
+    call    wc_isspace      	/* Call the wc_isspace function to check if it's whitespace */
+    testb   %al, %al        	/* Check the result */
+    jnz     .L_skip_whitespace  /* If not whitespace, skip to .L_skip_whitespace */
 
-    cmpl    %ecx, MAX_WORDLEN /* compare length of word with MAX_WORDLEN */
-    ja     .word_found       /* if number exceeds MAX_WORDLEN, end prematurely and return */
+    cmpl    %ecx, MAX_WORDLEN 	/* compare length of word with MAX_WORDLEN */
+    ja     .word_found       	/* if number exceeds MAX_WORDLEN, end prematurely and return */
 
-    movb    %al, (%rdi , %r10) /* Store the character in w[num] */
-    incq    %r10              /* Increment num */
-    jmp     .L_loop_read             /* Repeat the loop */
+    movb    %al, (%rdi , %r10) 	/* Store the character in w[num] */
+    incq    %r10              	/* Increment num */
+    jmp     .L_loop_read        /* Repeat the loop */
 
-.skip_whitespace:
-    testq   %r10, %r10       /* Check if num > 0 */
-    jz      .L_loop_read             /* If num is 0, continue looking for a word */
-    movb    $0, (%rdi, %r10)  /* Null-terminate the word */
-    movl    $1, %eax          /* Set return value to 1 (successful) */
+.L_skip_whitespace:
+    testq   %r10, %r10       	/* Check if num > 0 */
+    jz      .L_loop_read        /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %r10)  	/* Null-terminate the word */
+    movl    $1, %eax          	/* Set return value to 1 (successful) */
     ret
 
 .word_found:
-    testq   %r10, %r10       /* Check if num is greater than 0 */
-    jz      .L_loop_read             /* If num is 0, continue looking for a word */
-    movb    $0, (%rdi, %r10)  /* Null-terminate the word */
-    movl    $1, %eax          /* Set return value to 1 (successful) */
+    testq   %r10, %r10       	/* Check if num is greater than 0 */
+    jz      .L_loop_read        /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %r10)  	/* Null-terminate the word */
+    movl    $1, %eax          	/* Set return value to 1 (successful) */
     ret
 
 .L_done_read:
-	addq $8, %rsp
+	popq %r12					/* restore r12 */
+	popq %r13					/* restore r13 */
+	popq %rbx					/* restore rbx */
+	addq $8, %rsp				/* restore stack */
     ret
 
 
