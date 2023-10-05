@@ -50,23 +50,7 @@
 wc_hash:
 	movq $5381, %r10
 	subq $8, %rsp
-	.L_ifhash:
-		movq $0, %r11		/* reset character value */
-		movb (%rdi), %r11b	/* move current character value into %r11b */
-		cmpb $0, %r11b		/* if curr char is null*/
-		je .L_hashd			/* return current hash if null*/
-							/* calculate if not null*/
-		imulq $33, %r10		/* multiply hash by 33 */
-		addq %r11, %r10		/* add calculated hash to current hash*/
-		incq %rdi			/* move to next char */
-		jmp .L_ifhash
 
-<<<<<<< HEAD
-	.L_hashd:
-		movq %r10, %rax
-		addq $8, %rsp
-		ret
-=======
 .L_ifhash:
 	movq $0, %r11		/* reset character value */
 	movb (%rdi), %r11b	/* move current character value into %r11b */
@@ -82,7 +66,6 @@ wc_hash:
 	movq %r10, %rax
 	addq $8, %rsp
 	ret
->>>>>>> refs/remotes/origin/main
 
 
 /*
@@ -105,16 +88,16 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	subq $8, %rsp			/* align stack pointer */	
 
 .L_loop_comp: 					/* looping through the string */
-	movb (%rdi), %r12b		/* put character from lhs into register */
-	movb (%rsi), %r13b		/* put character from rhs into register */
+	movb (%rdi), %r10b		/* put character from lhs into register */
+	movb (%rsi), %r11b		/* put character from rhs into register */
 
-	cmpb $0, %r12b			/* check if lhs is null */
+	cmpb $0, %r10b			/* check if lhs is null */
 	je .L_lhs_null			/* if null, jump to L_lhs_null */
 
-	cmpb $0, %r13b			/* check if rhs is null since lhs is NOT null */
+	cmpb $0, %r11b			/* check if rhs is null since lhs is NOT null */
 	je .L_lhs_longer		/* if null, then lhs is longer */
 
-	cmpb %r12b, %r13b		/* compare char value */
+	cmpb %r10b, %r11b		/* compare char value */
 	jne .L_compare			/* if not equal, jump to compare */
 
 	incq %rdi				/* look at the next chars since curr chars are equal */
@@ -122,7 +105,7 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	jmp .L_loop_comp				/* move to restart loop */
 
 .L_lhs_null:						
-	cmpb $0, %r13b			/* check if rhs character is null */
+	cmpb $0, %r11b			/* check if rhs character is null */
 	je .L_equal				/* if true, both lhs and rhs are null */
 	jne .L_rhs_longer		/* if not, then rhs is longer */
 	
@@ -142,7 +125,7 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	ret
 
 .L_compare:					
-	subb %r13b, %r12b		/* comparing individual chars, rhs - lhs = ? */
+	subb %r11b, %r10b		/* comparing individual chars, rhs - lhs = ? */
 	js .L_rhs_longer		/* if negative, then rhs > lhs */
 	jns .L_lhs_longer		/* if positive, lhs > rhs */
 
@@ -290,27 +273,27 @@ wc_readnext:
 wc_tolower:
 	subq $8, %rsp
 
-	.L_ifnull:
-		movb (%rdi), %r10b	/* move current character value into %r11b */
-		cmpb $0, %r10b		/* if curr char is null*/
-		je .L_retlow		/* return current hash if null*/
-	
-		cmpb $65, %r10b		/* if greater or equal, it might be upper*/
-		jl .L_next			/* if less than, it is not upper*/
-		cmpb $90, %r10b		/* if less than or equal, it is upper*/
-		jg .L_next			/* if greater, it is not upper*/
+.L_ifnull:
+	movb (%rdi), %r10b	/* move current character value into %r11b */
+	cmpb $0, %r10b		/* if curr char is null*/
+	je .L_retlow		/* return current hash if null*/
 
-		addb $32, %r10b		/* change char to lowercase */
-		movb %r10b, (%rdi)	/* move char back*/
-		jmp .L_ifnull
+	cmpb $65, %r10b		/* if greater or equal, it might be upper*/
+	jl .L_next			/* if less than, it is not upper*/
+	cmpb $90, %r10b		/* if less than or equal, it is upper*/
+	jg .L_next			/* if greater, it is not upper*/
 
-	.L_next:
-		incq %rdi			/*go to next*/
-		jmp .L_ifnull
+	addb $32, %r10b		/* change char to lowercase */
+	movb %r10b, (%rdi)	/* move char back*/
+	jmp .L_ifnull
 
-	.L_retlow:
-		addq $8, %rsp
-		ret
+.L_next:
+	incq %rdi			/* go to next */
+	jmp .L_ifnull
+
+.L_retlow:
+	addq $8, %rsp
+	ret
 
 
 /*
@@ -333,22 +316,22 @@ wc_trim_non_alpha:
 
     xor     %rcx, %rcx         # Initialize len to 0
 
-.L_loop1_trim:  # searching forward until the end of the string
+.L_loop1_trim:  				# searching forward until the end of the string
     movb    (%rdi, %rcx), %al  # Load the character at w[len] to AL
     testb   %al, %al           # Check if it's the null terminator
     jz      .L_loop2_trim             # If it is, jump to loop2
     inc     %rcx               # Increment len
     jmp     .L_loop1_trim             # Repeat loop1
 
-.L_loop2_trim: # mid point check on the length 
+.L_loop2_trim: 					# mid point check on the length 
     testq   %rcx, %rcx         # Check if len is 0
     jz      .L_done_trim              # If it is, return
 
 .L_loop3_trim:
-    dec     %rcx               # Decrement len
+    decq     %rcx               # Decrement len
     movb    (%rdi, %rcx), %al  # Load the character at w[len-1] to AL
-	pushq 	(%rdi, %rcx)
-	movq 	(%rax), %rdi
+	pushq 	(%rdi, %rcx)		
+	movb	%al, %dil
     call    wc_isalpha         # Call wc_isalpha to check if it's an alpha char
 	popq 	(%rdi, %rcx)
 	testq  	%rax, %rax          # Check the result
