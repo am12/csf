@@ -50,21 +50,22 @@
 wc_hash:
 	movq $5381, %r10
 	subq $8, %rsp
-	.L_ifhash:
-		movq $0, %r11		/* reset character value */
-		movb (%rdi), %r11b	/* move current character value into %r11b */
-		cmpb $0, %r11b		/* if curr char is null*/
-		je .L_hashd			/* return current hash if null*/
-							/* calculate if not null*/
-		imulq $33, %r10		/* multiply hash by 33 */
-		addq %r11, %r10		/* add calculated hash to current hash*/
-		incq %rdi			/* move to next char */
-		jmp .L_ifhash
 
-	.L_hashd:
-		movq %r10, %rax
-		addq $8, %rsp
-		ret
+.L_ifhash:
+	movq $0, %r11		/* reset character value */
+	movb (%rdi), %r11b	/* move current character value into %r11b */
+	cmpb $0, %r11b		/* if curr char is null*/
+	je .L_hashd			/* return current hash if null*/
+						/* calculate if not null*/
+	imulq $33, %r10		/* multiply hash by 33 */
+	addq %r11, %r10		/* add calculated hash to current hash*/
+	incq %rdi			/* move to next char */
+	jmp .L_ifhash
+
+.L_hashd:
+	movq %r10, %rax
+	addq $8, %rsp
+	ret
 
 
 /*
@@ -203,37 +204,38 @@ wc_isalpha:
 	jl .L_isNot				/* if its lower, then it is not alphabetic */
 	jge .L_highA			/* if its higher it can be alphabetic or a symbol */
 
-	.L_highA:
-		cmpq $90, %rdi
-		jle .L_isAlphab			/* if its lower, then it is an uppercase letter */
-		jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
+.L_highA:
+	cmpq $90, %rdi
+	jle .L_isAlphab			/* if its lower, then it is an uppercase letter */
+	jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
 
-	.L_checklower:
-		cmpq $97, %rdi
-		jl .L_isNotA				/* if its lower, then it is a symbol */
-		jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
+.L_checklower:
+	cmpq $97, %rdi
+	jl .L_isNotA			/* if its lower, then it is a symbol */
+	jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
 
-	.L_highlowZ:
-		cmpq $122, %rdi
-		jle .L_isAlphab			/* if its lower, it is a lowercase letter */
-		jg .L_isNotA				/* if its greater, then it is not alphabetic */
+.L_highlowZ:
+	cmpq $122, %rdi
+	jle .L_isAlphab			/* if its lower, it is a lowercase letter */
+	jg .L_isNotA			/* if its greater, then it is not alphabetic */
 
-	.L_isNot:
-		xor %rax, %rax		/*return 0*/
-		ret
-	
-	.L_isAlpha:
-		xor %rax, %rax
-		incq %rax		/*return 1*/
-		ret
-	.L_isNotA:
-		xorq %rax, %rax
-		ret						/* return 0 */
+.L_isNot:
+	xor %rax, %rax			/* return 0 */
+	ret
 
-	.L_isAlphab:
-		xorq %rax, %rax
-		movq $1, %rax			/* return 1 */
-		ret		
+.L_isAlpha:
+	xor %rax, %rax
+	incq %rax				/* return 1 */
+	ret
+
+.L_isNotA:
+	xorq %rax, %rax
+	ret						/* return 0 */
+
+.L_isAlphab:
+	xorq %rax, %rax
+	movq $1, %rax			/* return 1 */
+	ret		
 
 
 /*
@@ -269,27 +271,27 @@ wc_readnext:
 wc_tolower:
 	subq $8, %rsp
 
-	.L_ifnull:
-		movb (%rdi), %r10b	/* move current character value into %r11b */
-		cmpb $0, %r10b		/* if curr char is null*/
-		je .L_retlow		/* return current hash if null*/
-	
-		cmpb $65, %r10b		/* if greater or equal, it might be upper*/
-		jl .L_next			/* if less than, it is not upper*/
-		cmpb $90, %r10b		/* if less than or equal, it is upper*/
-		jg .L_next			/* if greater, it is not upper*/
+.L_ifnull:
+	movb (%rdi), %r10b	/* move current character value into %r11b */
+	cmpb $0, %r10b		/* if curr char is null*/
+	je .L_retlow		/* return current hash if null*/
 
-		addb $32, %r10b		/* change char to lowercase */
-		movb %r10b, (%rdi)	/* move char back*/
-		jmp .L_ifnull
+	cmpb $65, %r10b		/* if greater or equal, it might be upper*/
+	jl .L_next			/* if less than, it is not upper*/
+	cmpb $90, %r10b		/* if less than or equal, it is upper*/
+	jg .L_next			/* if greater, it is not upper*/
 
-	.L_next:
-		incq %rdi			/*go to next*/
-		jmp .L_ifnull
+	addb $32, %r10b		/* change char to lowercase */
+	movb %r10b, (%rdi)	/* move char back*/
+	jmp .L_ifnull
 
-	.L_retlow:
-		addq $8, %rsp
-		ret
+.L_next:
+	incq %rdi			/*go to next*/
+	jmp .L_ifnull
+
+.L_retlow:
+	addq $8, %rsp
+	ret
 
 
 
@@ -304,28 +306,28 @@ wc_tolower:
 wc_trim_non_alpha:
 	subq $8, %rsp
 
-	.L_find_null:
-		movb (%rdi), %r10b	/* move current character value into %r11b */
-		cmpb $0, %r10b		/* if curr char is null*/
-		je .L_found_null	/* found null*/
+.L_find_null:
+	movb (%rdi), %r10b	/* move current character value into %r11b */
+	cmpb $0, %r10b		/* if curr char is null*/
+	je .L_found_null	/* found null*/
 
-		incq %rdi 			/*keep going if not found*/
-		jmp .L_find_null
+	incq %rdi 			/*keep going if not found*/
+	jmp .L_find_null
 
-	.L_found_null:
-		dec %rdi
-		call wc_isalpha
-		cmpb $1, %al
-		je .L_removed
-		jne .L_remove_non
+.L_found_null:
+	dec %rdi
+	call wc_isalpha
+	cmpb $1, %al
+	je .L_removed
+	jne .L_remove_non
 
-	.L_remove_non:
-		movb %r10b, (%rdi)
-		jmp .L_found_null
+.L_remove_non:
+	movb %r10b, (%rdi)
+	jmp .L_found_null
 
-	.L_removed:
-		addq $8, %rsp
-		ret
+.L_removed:
+	addq $8, %rsp
+	ret
 
 
 /*
