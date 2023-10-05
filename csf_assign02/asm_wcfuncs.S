@@ -54,11 +54,11 @@ wc_hash:
 .L_ifhash:
 	movq $0, %r11		/* reset character value */
 	movb (%rdi), %r11b	/* move current character value into %r11b */
-	cmpb $0, %r11b		/* if curr char is null*/
-	je .L_hashd			/* return current hash if null*/
-						/* calculate if not null*/
+	cmpb $0, %r11b		/* if curr char is null */
+	je .L_hashd			/* return current hash if null */
+						/* calculate if not null */
 	imulq $33, %r10		/* multiply hash by 33 */
-	addq %r11, %r10		/* add calculated hash to current hash*/
+	addq %r11, %r10		/* add calculated hash to current hash */
 	incq %rdi			/* move to next char */
 	jmp .L_ifhash
 
@@ -87,7 +87,7 @@ wc_hash:
 wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	subq $8, %rsp			/* align stack pointer */	
 
-.L_loop: 					/* looping through the string */
+.L_loop_comp: 					/* looping through the string */
 	movb (%rdi), %r12b		/* put character from lhs into register */
 	movb (%rsi), %r13b		/* put character from rhs into register */
 
@@ -102,7 +102,7 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 
 	incq %rdi				/* look at the next chars since curr chars are equal */
 	incq %rsi					
-	jmp .L_loop				/* move to restart loop */
+	jmp .L_loop_comp				/* move to restart loop */
 
 .L_lhs_null:						
 	cmpb $0, %r13b			/* check if rhs character is null */
@@ -138,9 +138,23 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
  */
 	.globl wc_str_copy
 wc_str_copy:
-	/* TODO: implement */
-	ret
+	subq $8, %rsp			/* align stack */
 
+.L_loop_copy:
+    mov (%rsi), %al     	/* load the character from source to al */
+    test %al, %al     		/* check if it's the null terminator */
+    je .L_done_copy        	/* if it is, done */
+
+    mov %al, (%rdi)    		/* otherwise, store the character in dest */
+    inc %rdi            	/* increment dest pointer */
+    inc %rsi            	/* increment source pointer */
+
+	jmp .L_loop_copy      	/* repeat the loop */
+
+.L_done_copy:
+    movq $0, (%rdi)         /* null-terminate dest */
+	addq $8, %rsp			/* restore stack */
+	ret
 
 /*
  * Return 1 if the character code in c is a whitespace character,
@@ -292,7 +306,6 @@ wc_tolower:
 .L_retlow:
 	addq $8, %rsp
 	ret
-
 
 
 /*
