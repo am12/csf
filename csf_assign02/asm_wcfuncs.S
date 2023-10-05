@@ -192,32 +192,32 @@ wc_str_copy:
 	.globl wc_isspace
 wc_isspace:
 	subq $8, %rsp		/* align stack */
+	movb %dil, %r10b	/* move a single char into r10b */
 
-	cmpq $9, %rdi		/* cmp '\t' */
+	cmpb $9, %r10b		/* cmp '\t' */
 	je .L_space			/* jump if equal */
 
-	cmpq $10, %rdi		/* cmp '\n' */
+	cmpb $10, %r10b		/* cmp '\n' */
 	je .L_space 		/* jump if equal */
 	
-	cmpq $11, %rdi		/* cmp '\v' */
+	cmpb $11, %r10b		/* cmp '\v' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $12, %rdi		/* cmp '\f' */
+	cmpb $12, %r10b		/* cmp '\f' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $13, %rdi		/* cmp '\r' */
+	cmpb $13, %r10b		/* cmp '\r' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $32, %rdi		/* cmp ' ' */
+	cmpb $32, %r10b		/* cmp ' ' */
 	je .L_space 		/* jump if equal */
 
-	xorq %rax, %rax 	/* clear rax */
+	xorq %rax, %rax 	/* not a space, return 0 */
 	addq $8, %rsp		/* restore stack */
 	ret
 
 .L_space:				/* is space */
-	xorq %rax, %rax  	/* clear rax */
-	movq $1, %rax		/* move 1 to return */
+	movq $1, %rax		/* space, return 1 */
 	addq $8, %rsp		/* restore stack */
 	ret
 
@@ -231,41 +231,30 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	cmpq $65, %rdi			/* checks if c is possibly anything below 'A'*/
+	subq $8, %rsp
+	movb %dil, %r10b		/* move a single char into r10b */
+
+	cmpb $65, %r10b			/* checks if c is possibly anything below 'A' */
 	jl .L_isNot				/* if its lower, then it is not alphabetic */
-	jge .L_highA			/* if its higher it can be alphabetic or a symbol */
 
-	.L_highA:
-		cmpq $90, %rdi
-		jle .L_isAlphab			/* if its lower, then it is an uppercase letter */
-		jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
+	cmpb $90, %r10b			/* checks if c is possibly anything above 'Z' */
+	jle .L_isAlpha			/* if its lower or equal, then it is an uppercase letter (alphabetic) */
 
-	.L_checklower:
-		cmpq $97, %rdi
-		jl .L_isNotA				/* if its lower, then it is a symbol */
-		jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
+	cmpb $97, %r10b			/* checks if c is possibly anything below 'a' */
+	jl .L_isNot				/* if its lower, then it is not alphabetic */
 
-	.L_highlowZ:
-		cmpq $122, %rdi
-		jle .L_isAlphab			/* if its lower, it is a lowercase letter */
-		jg .L_isNotA				/* if its greater, then it is not alphabetic */
+	cmpb $122, %r10b		/* checks if c is possibly anything above 'z' */
+	jle .L_isAlpha 			/* if its lower or equal, it is a lowercase letter (alphabetic) */
 
-	.L_isNot:
-		xor %rax, %rax		/*return 0*/
-		ret
-	
-	.L_isAlpha:
-		xor %rax, %rax
-		incq %rax		/*return 1*/
-		ret
-	.L_isNotA:
-		xorq %rax, %rax
-		ret						/* return 0 */
+.L_isNot:
+	xorq %rax, %rax 		/* not alpha, return 0 */
+	addq $8, %rsp
+	ret
 
-	.L_isAlphab:
-		xorq %rax, %rax
-		movq $1, %rax			/* return 1 */
-		ret		
+.L_isAlpha:
+	movq $1, %rax			/* alpha, return 1 */
+	addq $8, %rsp
+	ret
 
 
 /*
@@ -335,36 +324,66 @@ wc_tolower:
 wc_trim_non_alpha:
 	subq $8, %rsp
 
-	.L_find_null:
-		movq $0, %r10		/*clear r10 */
-		movb (%rdi), %r10b	/* move current character value into %r11b */
-		cmpb $0, %r10b		/* if curr char is null*/
-		je .L_found_null	/* found null*/
+    testq   %rdi, %rdi         # Check if w is NULL
+    je      .L_done_trim              # If it is, return
 
-		incq %rdi 			/*keep going if not found*/
-		jmp .L_find_null
+    movb    (%rdi), %al        # Load the first character of w to AL
+    testb   %al, %al           # Check if it's the null terminator
+    je      .L_done_trim              # If it is, return
 
-	.L_found_null:
-		dec %rdi
-		movb (%rdi), %r10b
-		jmp .L_checkalpha
-	
-	.L_checkalpha:
-		call wc_isalpha
-		cmpb $1, %al
-		je .L_next_non		/* if it is alpha, go to next*/
-		jne .L_remove_non
-	
-	.L_next_non:
-		incq %rdi
+    xor     %rcx, %rcx         # Initialize len to 0
 
-	.L_remove_non:
-		movb %r10b, (%rdi)
-		jmp .L_found_null
+.L_loop1_trim:  # searching forward until the end of the string
+    movb    (%rdi, %rcx), %al  # Load the character at w[len] to AL
+    testb   %al, %al           # Check if it's the null terminator
+    jz      .L_loop2_trim             # If it is, jump to loop2
+    inc     %rcx               # Increment len
+    jmp     .L_loop1_trim             # Repeat loop1
 
-	.L_removed:
-		addq $8, %rsp
-		ret
+.L_loop2_trim: # mid point check on the length 
+    testq   %rcx, %rcx         # Check if len is 0
+    jz      .L_done_trim              # If it is, return
+
+.L_loop3_trim:
+    dec     %rcx               # Decrement len
+    movb    (%rdi, %rcx), %al  # Load the character at w[len-1] to AL
+	pushq 	(%rdi, %rcx)
+	movq 	(%rax), %rdi
+    call    wc_isalpha         # Call wc_isalpha to check if it's an alpha char
+	popq 	(%rdi, %rcx)
+	testq  	%rax, %rax          # Check the result
+    jnz     .L_done_trim              # If it's alpha, return
+    movb    $0, (%rdi, %rcx)   # Otherwise, set w[len-1] to null terminator
+    testq   %rcx, %rcx         # Check if len is now 0
+    jnz     .L_loop3_trim             # If not, repeat loop3
+
+.L_done_trim:
+	addq $8, %rsp
+    ret
+
+; .L_find_null:
+; 	movb (%rdi), %r10b	/* move current character value into %r11b */
+; 	cmpb $0, %r10b		/* if curr char is null*/
+; 	je .L_found_null	/* found null*/
+
+; 	incq %rdi 			/*keep going if not found*/
+; 	jmp .L_find_null
+
+; .L_found_null:
+; 	dec %rdi
+; 	call wc_isalpha
+; 	cmpb $1, %al
+; 	je .L_removed
+; 	jne .L_remove_non
+
+; .L_remove_non:
+; 	movb %r10b, (%rdi)
+; 	jmp .L_found_null
+
+; .L_removed:
+; 	addq $8, %rsp
+; 	ret
+
 
 /*
  * Search the specified linked list of WordEntry objects for an object
