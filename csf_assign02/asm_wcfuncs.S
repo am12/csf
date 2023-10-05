@@ -88,16 +88,16 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	subq $8, %rsp			/* align stack pointer */	
 
 .L_loop_comp: 					/* looping through the string */
-	movb (%rdi), %r12b		/* put character from lhs into register */
-	movb (%rsi), %r13b		/* put character from rhs into register */
+	movb (%rdi), %r10b		/* put character from lhs into register */
+	movb (%rsi), %r11b		/* put character from rhs into register */
 
-	cmpb $0, %r12b			/* check if lhs is null */
+	cmpb $0, %r10b			/* check if lhs is null */
 	je .L_lhs_null			/* if null, jump to L_lhs_null */
 
-	cmpb $0, %r13b			/* check if rhs is null since lhs is NOT null */
+	cmpb $0, %r11b			/* check if rhs is null since lhs is NOT null */
 	je .L_lhs_longer		/* if null, then lhs is longer */
 
-	cmpb %r12b, %r13b		/* compare char value */
+	cmpb %r10b, %r11b		/* compare char value */
 	jne .L_compare			/* if not equal, jump to compare */
 
 	incq %rdi				/* look at the next chars since curr chars are equal */
@@ -105,7 +105,7 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	jmp .L_loop_comp				/* move to restart loop */
 
 .L_lhs_null:						
-	cmpb $0, %r13b			/* check if rhs character is null */
+	cmpb $0, %r11b			/* check if rhs character is null */
 	je .L_equal				/* if true, both lhs and rhs are null */
 	jne .L_rhs_longer		/* if not, then rhs is longer */
 	
@@ -125,7 +125,7 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	ret
 
 .L_compare:					
-	subb %r13b, %r12b		/* comparing individual chars, rhs - lhs = ? */
+	subb %r11b, %r10b		/* comparing individual chars, rhs - lhs = ? */
 	js .L_rhs_longer		/* if negative, then rhs > lhs */
 	jns .L_lhs_longer		/* if positive, lhs > rhs */
 
@@ -175,32 +175,32 @@ wc_str_copy:
 	.globl wc_isspace
 wc_isspace:
 	subq $8, %rsp		/* align stack */
+	movb %dil, %r10b	/* move a single char into r10b */
 
-	cmpq $9, %rdi		/* cmp '\t' */
+	cmpb $9, %r10b		/* cmp '\t' */
 	je .L_space			/* jump if equal */
 
-	cmpq $10, %rdi		/* cmp '\n' */
+	cmpb $10, %r10b		/* cmp '\n' */
 	je .L_space 		/* jump if equal */
 	
-	cmpq $11, %rdi		/* cmp '\v' */
+	cmpb $11, %r10b		/* cmp '\v' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $12, %rdi		/* cmp '\f' */
+	cmpb $12, %r10b		/* cmp '\f' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $13, %rdi		/* cmp '\r' */
+	cmpb $13, %r10b		/* cmp '\r' */
 	je .L_space 		/* jump if equal */
 
-	cmpq $32, %rdi		/* cmp ' ' */
+	cmpb $32, %r10b		/* cmp ' ' */
 	je .L_space 		/* jump if equal */
 
-	xorq %rax, %rax 	/* clear rax */
+	xorq %rax, %rax 	/* not a space, return 0 */
 	addq $8, %rsp		/* restore stack */
 	ret
 
 .L_space:				/* is space */
-	xorq %rax, %rax  	/* clear rax */
-	movq $1, %rax		/* move 1 to return */
+	movq $1, %rax		/* space, return 1 */
 	addq $8, %rsp		/* restore stack */
 	ret
 
@@ -214,42 +214,33 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	cmpq $65, %rdi			/* checks if c is possibly anything below 'A'*/
+	subq $8, %rsp
+	movb %dil, %r10b		/* move a single char into r10b */
+
+	cmpb $65, %r10b			/* checks if c is possibly anything below 'A' */
 	jl .L_isNot				/* if its lower, then it is not alphabetic */
-	jge .L_highA			/* if its higher it can be alphabetic or a symbol */
 
-.L_highA:
-	cmpq $90, %rdi
-	jle .L_isAlphab			/* if its lower, then it is an uppercase letter */
-	jge .L_checklower		/* if its greater, it can be alphabetic or a lowercase */
+	cmpb $90, %r10b			/* checks if c is possibly anything above 'Z' */
+	jle .L_isAlpha			/* if its lower or equal, then it is an uppercase letter (alphabetic) */
 
-.L_checklower:
-	cmpq $97, %rdi
-	jl .L_isNotA			/* if its lower, then it is a symbol */
-	jge .L_highlowZ			/* if its higher, it can be a lowercase letter */
+	cmpb $97, %r10b			/* checks if c is possibly anything below 'a' */
+	jl .L_isNot				/* if its lower, then it is not alphabetic */
 
-.L_highlowZ:
-	cmpq $122, %rdi
-	jle .L_isAlphab			/* if its lower, it is a lowercase letter */
-	jg .L_isNotA			/* if its greater, then it is not alphabetic */
-
-.L_isNot:
-	xor %rax, %rax			/* return 0 */
-	ret
-
-.L_isAlpha:
-	xor %rax, %rax
-	incq %rax				/* return 1 */
-	ret
+	cmpb $122, %r10b		/* checks if c is possibly anything above 'z' */
+	jle .L_isAlpha 			/* if its lower or equal, it is a lowercase letter (alphabetic) */
 
 .L_isNotA:
 	xorq %rax, %rax
 	ret						/* return 0 */
+.L_isNot:
+	xorq %rax, %rax 		/* not alpha, return 0 */
+	addq $8, %rsp
+	ret
 
-.L_isAlphab:
-	xorq %rax, %rax
-	movq $1, %rax			/* return 1 */
-	ret		
+.L_isAlpha:
+	movq $1, %rax			/* alpha, return 1 */
+	addq $8, %rsp
+	ret
 
 
 /*
@@ -270,8 +261,54 @@ wc_isalpha:
  */
 	.globl wc_readnext
 wc_readnext:
-	/* TODO: implement */
-	ret
+	subq $8, %rsp
+
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %rbx					/* save rbx */
+
+	movq %rdi, %r12				/* r12 is file pointer */
+	movq %rsi, %r13 			/* r13 is the string containing the returned word */
+	movq $0, %rbx				/* rbx is the return value, initialized with 0 */
+    movq $0, %r10       		/* r10 is length of word read, initialize to 0 */
+	
+.L_loop_read:
+
+    call fgetc            		/* call the fgetc function to read a character into %al */
+    cmpq $-1, %rax	      		/* check if EOF */
+    je .L_done_read       		/* if EOF, done */
+
+    call wc_isspace      		/* Call the wc_isspace function to check if it's whitespace */
+    testb %al, %al        		/* Check the result */
+    jnz .L_skip_whitespace  	/* If not whitespace, skip to .L_skip_whitespace */
+
+    cmp %ecx, MAX_WORDLEN 	/* compare length of word with MAX_WORDLEN */
+    ja .L_word_found       	/* if number exceeds MAX_WORDLEN, end prematurely and return */
+
+    movb %al, (%rdi , %r10) 	/* Store the character in w[num] */
+    incq %r10              	/* Increment num */
+    jmp .L_loop_read        /* Repeat the loop */
+
+.L_skip_whitespace:
+    testq %r10, %r10       	/* Check if num > 0 */
+    jz .L_loop_read        /* If num is 0, continue looking for a word */
+    movb $0, (%rdi, %r10)  	/* Null-terminate the word */
+    movl $1, %eax          	/* Set return value to 1 (successful) */
+    ret
+
+.L_word_found:
+    testq   %r10, %r10       	/* Check if num is greater than 0 */
+    jz      .L_loop_read        /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %r10)  	/* Null-terminate the word */
+    movl    $1, %eax          	/* Set return value to 1 (successful) */
+    ret
+
+.L_done_read:
+	popq %r12					/* restore r12 */
+	popq %r13					/* restore r13 */
+	popq %rbx					/* restore rbx */
+	addq $8, %rsp				/* restore stack */
+    ret
 
 
 /*
@@ -317,31 +354,47 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	subq $8, %rsp
-
-.L_find_null:
-	movb (%rdi), %r10b	/* move current character value into %r11b */
-	cmpb $0, %r10b		/* if curr char is null*/
-	je .L_found_null	/* found null*/
-
-	incq %rdi 			/*keep going if not found*/
-	jmp .L_find_null
-
-.L_found_null:
-	dec %rdi
-	call wc_isalpha
-	cmpb $1, %al
+	pushq %rbx				/* save callee-saved register and align stack */
+	movq %rdi, %rbx	/* move current character value into %r11b */
+ 	cmpq $0, %rdi		/* if curr char is null*/
 	je .L_removed
-	jne .L_remove_non
 
-.L_remove_non:
-	movb %r10b, (%rdi)
-	jmp .L_found_null
+.L_find_end:
+ 	movb (%rbx), %r11b	/* move current character value into %r11b */
+ 	cmpb $0, %r11b		/* if curr char is null*/
+ 	je .L_loopalpha		/* found null*/
+
+ 	incq %rbx			/*keep going if not found*/
+ 	jmp .L_find_end
+
+.L_loopalpha:
+	cmpq %rdi, %rbx			/* check if pointer is at beginning of string */
+	je .L_back_alpha/* if it is, we have to move back to the beginning */
+
+	movb (%rbx), %dil		/* move current chatacter into param for is_alpha */
+	call wc_isalpha			/* call wc_isalpha to check if current char is alpha */
+
+	cmpq $1, %rax			/* check if current char is alpha */
+	je .L_back_alpha/* if it is, we found our last character */
+							/* otherwise we have to keep moving back */
+	decq %rbx				/* decrement pointer to previous char */
+	jmp .L_loopalpha		/* jump to .LloopbackAlpha */
+
+.L_back_alpha:
+	movb (%rbx), %dil
+ 	call wc_isalpha
+ 	cmpq $1, %rax
+ 	je .L_setNull
+ 	movb $0, (%rbx)			/* otherwise, set the current character to null */
+	jmp .L_removed			/* jump to .Lreturn */
+
+.L_setNull:
+	addq $1, %rbx			/* increment pointer to next char */
+	movb $0, (%rbx)			/* set the next character to null */
 
 .L_removed:
-	addq $8, %rsp
-	ret
-
+    popq %rbx				/* restore callee-saved register and restore stack */
+ 	ret
 
 /*
  * Search the specified linked list of WordEntry objects for an object
