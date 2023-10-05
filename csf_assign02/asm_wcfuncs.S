@@ -141,13 +141,13 @@ wc_str_copy:
 	subq $8, %rsp			/* align stack */
 
 .L_loop_copy:
-    mov (%rsi), %al     	/* load the character from source to al */
+    movb (%rsi), %al     	/* load the character from source to al */
     test %al, %al     		/* check if it's the null terminator */
     je .L_done_copy        	/* if it is, done */
 
-    mov %al, (%rdi)    		/* otherwise, store the character in dest */
-    inc %rdi            	/* increment dest pointer */
-    inc %rsi            	/* increment source pointer */
+    movb %al, (%rdi)    		/* otherwise, store the character in dest */
+    incq %rdi            	/* increment dest pointer */
+    incq %rsi            	/* increment source pointer */
 
 	jmp .L_loop_copy      	/* repeat the loop */
 
