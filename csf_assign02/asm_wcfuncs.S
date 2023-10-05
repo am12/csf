@@ -259,41 +259,48 @@ wc_isalpha:
 	.globl wc_readnext
 wc_readnext:
 	subq $8, %rsp
-
-    xorl    %eax, %eax       /* Initialize return value to 0 (unsuccessful) */
-    xorq    %rcx, %rcx       /* Initialize num to 0 */
+	pushq %r12				/* save r12 */
+	pushq %r13				/* save r13 */
+	pushq %r14				/* save r14 */
+	movq %rdi, %r12			/* r12 is file pointer */
+	movq %rsi, %r13 		/* r13 is the string containing the returned word */
+	movq $0, %r14			/* 0 is the return value */
 	
-.loop:
-    call    fgetc            /* Call the fgetc function to read a character into %al */
-    cmpl    %eax, %edi       /* Compare the result with EOF */
-    je      .done             /* If it's EOF, we are done */
+    xorq    %rax, %rax      /* initialize return value to 0 (unsuccessful) */
+    movq	$0, %r10       	/* Initialize num to 0 */
+	
+.L_loop_read:
+
+    call    fgetc            /* call the fgetc function to read a character into %al */
+    cmpq   	$-1, %rax	     /* check if EOF */
+    je      .L_done_read     /* if EOF, done */
 
     call    wc_isspace       /* Call the wc_isspace function to check if it's whitespace */
     testb   %al, %al         /* Check the result */
     jnz     .skip_whitespace  /* If not whitespace, skip to .skip_whitespace */
 
-    cmpl    %ecx, MAX_WORDLEN /* Compare num with MAX_WORDLEN */
-    jae     .word_found       /* If num >= MAX_WORDLEN, a word is found */
+    cmpl    %ecx, MAX_WORDLEN /* compare length of word with MAX_WORDLEN */
+    ja     .word_found       /* if number exceeds MAX_WORDLEN, end prematurely and return */
 
-    movb    %al, (%rdi, %rcx) /* Store the character in w[num] */
-    incq    %rcx              /* Increment num */
-    jmp     .loop             /* Repeat the loop */
+    movb    %al, (%rdi , %r10) /* Store the character in w[num] */
+    incq    %r10              /* Increment num */
+    jmp     .L_loop_read             /* Repeat the loop */
 
 .skip_whitespace:
-    testq   %rcx, %rcx       /* Check if num > 0 */
-    jz      .loop             /* If num is 0, continue looking for a word */
-    movb    $0, (%rdi, %rcx)  /* Null-terminate the word */
+    testq   %r10, %r10       /* Check if num > 0 */
+    jz      .L_loop_read             /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %r10)  /* Null-terminate the word */
     movl    $1, %eax          /* Set return value to 1 (successful) */
     ret
 
 .word_found:
-    testq   %rcx, %rcx       /* Check if num is greater than 0 */
-    jz      .loop             /* If num is 0, continue looking for a word */
-    movb    $0, (%rdi, %rcx)  /* Null-terminate the word */
+    testq   %r10, %r10       /* Check if num is greater than 0 */
+    jz      .L_loop_read             /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %r10)  /* Null-terminate the word */
     movl    $1, %eax          /* Set return value to 1 (successful) */
     ret
 
-.done:
+.L_done_read:
 	addq $8, %rsp
     ret
 
