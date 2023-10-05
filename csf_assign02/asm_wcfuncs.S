@@ -275,25 +275,25 @@ wc_readnext:
     cmpq $-1, %rax	      		/* check if EOF */
     je .L_done_read       		/* if EOF, done */
 
-    call    wc_isspace      	/* Call the wc_isspace function to check if it's whitespace */
-    testb   %al, %al        	/* Check the result */
-    jnz     .L_skip_whitespace  /* If not whitespace, skip to .L_skip_whitespace */
+    call wc_isspace      		/* Call the wc_isspace function to check if it's whitespace */
+    testb %al, %al        		/* Check the result */
+    jnz .L_skip_whitespace  	/* If not whitespace, skip to .L_skip_whitespace */
 
-    cmpl    %ecx, MAX_WORDLEN 	/* compare length of word with MAX_WORDLEN */
-    ja     .word_found       	/* if number exceeds MAX_WORDLEN, end prematurely and return */
+    cmp %ecx, MAX_WORDLEN 	/* compare length of word with MAX_WORDLEN */
+    ja .L_word_found       	/* if number exceeds MAX_WORDLEN, end prematurely and return */
 
-    movb    %al, (%rdi , %r10) 	/* Store the character in w[num] */
-    incq    %r10              	/* Increment num */
-    jmp     .L_loop_read        /* Repeat the loop */
+    movb %al, (%rdi , %r10) 	/* Store the character in w[num] */
+    incq %r10              	/* Increment num */
+    jmp .L_loop_read        /* Repeat the loop */
 
 .L_skip_whitespace:
-    testq   %r10, %r10       	/* Check if num > 0 */
-    jz      .L_loop_read        /* If num is 0, continue looking for a word */
-    movb    $0, (%rdi, %r10)  	/* Null-terminate the word */
-    movl    $1, %eax          	/* Set return value to 1 (successful) */
+    testq %r10, %r10       	/* Check if num > 0 */
+    jz .L_loop_read        /* If num is 0, continue looking for a word */
+    movb $0, (%rdi, %r10)  	/* Null-terminate the word */
+    movl $1, %eax          	/* Set return value to 1 (successful) */
     ret
 
-.word_found:
+.L_word_found:
     testq   %r10, %r10       	/* Check if num is greater than 0 */
     jz      .L_loop_read        /* If num is 0, continue looking for a word */
     movb    $0, (%rdi, %r10)  	/* Null-terminate the word */
