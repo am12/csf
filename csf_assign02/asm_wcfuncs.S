@@ -258,8 +258,44 @@ wc_isalpha:
  */
 	.globl wc_readnext
 wc_readnext:
-	/* TODO: implement */
-	ret
+	subq $8, %rsp
+
+    xorl    %eax, %eax       /* Initialize return value to 0 (unsuccessful) */
+    xorq    %rcx, %rcx       /* Initialize num to 0 */
+	
+.loop:
+    call    fgetc            /* Call the fgetc function to read a character into %al */
+    cmpl    %eax, %edi       /* Compare the result with EOF */
+    je      .done             /* If it's EOF, we are done */
+
+    call    wc_isspace       /* Call the wc_isspace function to check if it's whitespace */
+    testb   %al, %al         /* Check the result */
+    jnz     .skip_whitespace  /* If not whitespace, skip to .skip_whitespace */
+
+    cmpl    %ecx, MAX_WORDLEN /* Compare num with MAX_WORDLEN */
+    jae     .word_found       /* If num >= MAX_WORDLEN, a word is found */
+
+    movb    %al, (%rdi, %rcx) /* Store the character in w[num] */
+    incq    %rcx              /* Increment num */
+    jmp     .loop             /* Repeat the loop */
+
+.skip_whitespace:
+    testq   %rcx, %rcx       /* Check if num > 0 */
+    jz      .loop             /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %rcx)  /* Null-terminate the word */
+    movl    $1, %eax          /* Set return value to 1 (successful) */
+    ret
+
+.word_found:
+    testq   %rcx, %rcx       /* Check if num is greater than 0 */
+    jz      .loop             /* If num is 0, continue looking for a word */
+    movb    $0, (%rdi, %rcx)  /* Null-terminate the word */
+    movl    $1, %eax          /* Set return value to 1 (successful) */
+    ret
+
+.done:
+	addq $8, %rsp
+    ret
 
 
 /*
@@ -305,20 +341,20 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	subq $8, %rsp
+	subq $8, %rsp 
 
     testq   %rdi, %rdi         # Check if w is NULL
     je      .L_done_trim              # If it is, return
 
-    movb    (%rdi), %al        # Load the first character of w to AL
-    testb   %al, %al           # Check if it's the null terminator
+    movb    (%rdi), %r10b        # Load the first character of w to AL
+    testb   %r10b, %r10b           # Check if it's the null terminator
     je      .L_done_trim              # If it is, return
 
     xor     %rcx, %rcx         # Initialize len to 0
 
 .L_loop1_trim:  				# searching forward until the end of the string
-    movb    (%rdi, %rcx), %al  # Load the character at w[len] to AL
-    testb   %al, %al           # Check if it's the null terminator
+    movb    (%rdi, %rcx), %r10b  # Load the character at w[len] to AL
+    testb   %r10b, %r10b           # Check if it's the null terminator
     jz      .L_loop2_trim             # If it is, jump to loop2
     inc     %rcx               # Increment len
     jmp     .L_loop1_trim             # Repeat loop1
@@ -329,11 +365,11 @@ wc_trim_non_alpha:
 
 .L_loop3_trim:
     decq     %rcx               # Decrement len
-    movb    (%rdi, %rcx), %al  # Load the character at w[len-1] to AL
-	pushq 	(%rdi, %rcx)		
-	movb	%al, %dil
+    movb    (%rdi, %rcx), %r10b  # Load the character at w[len-1] to AL
+	pushq 	(%rdi)		
+	movb	%r10b, %dil
     call    wc_isalpha         # Call wc_isalpha to check if it's an alpha char
-	popq 	(%rdi, %rcx)
+	popq 	(%rdi)
 	testq  	%rax, %rax          # Check the result
     jnz     .L_done_trim              # If it's alpha, return
     movb    $0, (%rdi, %rcx)   # Otherwise, set w[len-1] to null terminator
@@ -355,7 +391,7 @@ wc_trim_non_alpha:
 ; .L_found_null:
 ; 	dec %rdi
 ; 	call wc_isalpha
-; 	cmpb $1, %al
+; 	cmpb $1, %r10b
 ; 	je .L_removed
 ; 	jne .L_remove_non
 
