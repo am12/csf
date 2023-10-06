@@ -140,20 +140,32 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 wc_str_copy:
 	subq $8, %rsp			/* align stack */
 
+	pushq %r12				/* save value at r12 */
+	pushq %r13				/* save value at r13 */
+	pushq %r14				/* save value at r14 */
+
+	movq %rsi, %r12			/* move argument at rsi to r12 */
+	movq %rdi, %r13			/* move argument at rdi to r13 */	
+
 .L_loop_copy:
-    movb (%rsi), %al     	/* load the character from source to al */
-    test %al, %al     		/* check if it's the null terminator */
+    movb (%r12), %r14b     	/* load the character from source to al */
+    testb %r14b, %r14b    	/* check if it's the null terminator */
     je .L_done_copy        	/* if it is, done */
 
-    movb %al, (%rdi)    	/* otherwise, store the character in dest */
-    incq %rdi            	/* increment dest pointer */
-    incq %rsi            	/* increment source pointer */
+    movb %r14b, (%r13)    	/* otherwise, store the character in dest */
+    incq %r13            	/* increment dest pointer */
+    incq %r12            	/* increment source pointer */
 
 	jmp .L_loop_copy      	/* repeat the loop */
 
 .L_done_copy:
-    movq $0, (%rdi)         /* null-terminate dest */
-	addq $8, %rsp			/* restore stack */
+    movq $0, (%r13)         /* null-terminate dest */
+	movq %r13, %rdi			/* move string to rdi */ 
+
+	popq %r14				/* restore r14 */
+	popq %r13				/* restore r13 */
+	popq %r12				/* restore r12 */
+	addq $8, %rsp			/* restore stack */	
 	ret
 
 /*
@@ -429,11 +441,65 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	
-	
+	subq $8, %rsp				/* align stack */
 
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %r14					/* save r14 */
+	pushq %rbx					/* save rbx */
 
-	ret
+	movq %rdi, %r12				/* r12 is head WordEntry */
+	movq %rsi, %r13 			/* r13 is the specified string */
+	movq %rdx, %r14      		/* r14 is the int representing inserted */
+
+	movq %r12, %rbx				/* rbx is the current WordEntry */
+
+.L_loop_search_match:
+	
+	cmpq $0, %rbx 							// check if current is null 
+	je .L_not_found_match					// if reached end, did not find
+
+	movq WORDENTRY_WORD_OFFSET(%rbx), %rdi 	// move word into LHS input
+	movq %r13, %rsi 						// move target string into RHS input
+	call wc_str_compare 					// compare strings
+	cmpq $0, %rax  							// check if equal
+	je .L_found_match						// if equal, found match
+
+	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx 	// move current to next
+	jmp .L_loop_search_match 				// loop back to top
+	
+.L_found_match:
+
+	movq $0, (%r14)							// inserted is 0
+	movq %rbx, %rax							// return the found WordEntry
+	jmp .L_dict_find_cleanup				// jump to cleanup
+
+.L_not_found_match: 
+
+	movq $WORDENTRY_SIZE, %rdi 				// pass size of WordEntry to malloc 
+	call malloc 							// call malloc
+	movq %rax, %rbx							// move returned WordEntry to rbx
+
+	movq WORDENTRY_WORD_OFFSET(%rbx), %rdi 	// move word section to destination position
+	movq %r13, %rsi 						// move source string to source position
+	call wc_str_copy						// call string copy to copy string into %rdi 
+
+	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
+	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the rbx to head WordEntry
+	movq $1, (%r14) 						// inserted is 1
+
+	movq %rbx, %rax 						// return inserted WordEntry
+
+.L_dict_find_cleanup:
+	
+	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
+	popq %r13					/* restore r13 */
+    popq %r12					/* restore r12 */
+
+	addq $8, %rsp				/* restore stack */
+
+    ret
 
 
 /*
@@ -467,7 +533,7 @@ wc_free_chain:
 
 .L_looptofree:
 	cmpq $0, %rbx								/* if curr is null, end of list*/
-	je .L_finishedfree							/*return if null */
+	je .L_finishedfree							/* return if null */
 
 	movq %rbx, %rdi								/* store curr obj */
 	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx		/* store next obj */
