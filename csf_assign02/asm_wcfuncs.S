@@ -314,19 +314,14 @@ wc_readnext:
 	xorq %rax, %rax 			/* clears rax pointer */
 	cmpq $0, %rbx 				/* check if length of word is nonzero */
     ja .L_word_found     		/* if nonzero, word was found */
-
-	popq %rbx					/* restore rbx */
-	popq %r14					/* restore r14 */
-	popq %r13					/* restore r13 */
-	popq %r12					/* restore r12 */
-	addq $8, %rsp				/* restore stack */
-    ret
+	jmp .L_cleanup_readnext 	/* otherwise, cleanup and return */
     
 .L_word_found:
 	movb $0, (%r13, %rbx)  		/* null-terminate the word */
     movq $1, %rax          		/* set return value to 1 (successful) */
 	movq %r13, %rsi 			/* move string in r13 back to rsi */
 
+.L_cleanup_readnext:
 	popq %rbx					/* restore rbx */
 	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
@@ -516,11 +511,43 @@ wc_find_or_insert:
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
 	
-	
-	
+	subq $8, %rsp				/* align stack */
 
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %r14					/* save r14 */
+	pushq %rbx					/* save rbx */
 
-	ret
+	movq %rdi, %r12				/* r12 is hash table of WordEntries */
+	movq %rsi, %r13 			/* r13 is number of buckets */
+	movq %rdx, %r14      		/* r14 is the string to add */
+
+	movq %r14, %rdi 			/* move the string to argument for hash */
+	call wc_hash				/* call hash function, result in rax */
+	movq %r13, %rcx				/* move num buckets as dividend */
+	xorq %rdx, %rdx				/* clear rdx (where remainder goes) */
+	divq %rcx 					/* integer divide, remainder in rdx */
+	movq %rdx, %rbx 			/* move hash value into rbx */
+	
+	xorq %rdx, %rdx 			/* clear third arg (inserted) to call find or insert */
+	movq (%r12, %rbx), %rdi		/* move the specific WordEntry in hash table to first arg */
+	movq %r14, %rsi 			/* move the string to add as second arg */
+	call wc_find_or_insert		/* call find or insert */
+	
+	cmpq $0, (%rdx)				/* check if new WordEntry was inserted */
+	je .L_return_word			/* jump to return if not inserted */
+	
+	movq %rdx, (%r12, %rbx)		/* if inserted, set the head of list to new WordEntry */
+
+.L_return_word: 
+
+	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
+	popq %r13					/* restore r13 */
+    popq %r12					/* restore r12 */
+
+	addq $8, %rsp				/* restore stack */
+    ret
 
 
 /*
