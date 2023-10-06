@@ -313,7 +313,6 @@ wc_readnext:
     ret
     
 .L_word_found:
-	//incq %rbx					/* inc length to reach null term position */
 	movb $0, (%r13, %rbx)  		/* null-terminate the word */
     movq $1, %rax          		/* set return value to 1 (successful) */
 	movq %r13, %rsi 			/* move string in r13 back to rsi */
