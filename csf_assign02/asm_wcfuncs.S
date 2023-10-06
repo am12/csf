@@ -409,7 +409,7 @@ wc_trim_non_alpha:
 .L_back_alpha:
 	movb (%rbx), %dil			/* move curr char into func input */
  	call wc_isalpha				/* check if is alpha*/
- 	cmpq $1, %rax				/*if char, we go next */
+ 	cmpq $1, %rax				/* if char, we go next */
  	je .L_setNull
  	movb $0, (%rbx)				/* if not we set curr to null */
 	jmp .L_removed				/* jump to .Lreturn */
@@ -459,7 +459,7 @@ wc_find_or_insert:
 	cmpq $0, %rbx 							// check if current is null 
 	je .L_not_found_match					// if reached end, did not find
 
-	movq WORDENTRY_WORD_OFFSET(%rbx), %rdi 	// move word into LHS input
+	movq %rbx, %rdi 						// move word into LHS input
 	movq %r13, %rsi 						// move target string into RHS input
 	call wc_str_compare 					// compare strings
 	cmpq $0, %rax  							// check if equal
@@ -478,14 +478,14 @@ wc_find_or_insert:
 
 	movq $WORDENTRY_SIZE, %rdi 				// pass size of WordEntry to malloc 
 	call malloc 							// call malloc
-	movq %rax, %rbx							// move returned WordEntry to rbx
+	movq %rax, %rbx							// move returned new WordEntry to rbx
 
-	movq WORDENTRY_WORD_OFFSET(%rbx), %rdi 	// move word section to destination position
+	movq %rbx, %rdi 						// move word section to destination position
 	movq %r13, %rsi 						// move source string to source position
-	call wc_str_copy						// call string copy to copy string into %rdi 
+	call wc_str_copy						// call string copy to copy string into rdi 
 
 	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
-	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the rbx to head WordEntry
+	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the new WordEntry to head WordEntry
 	movq $1, (%r14) 						// inserted is 1
 
 	movq %rbx, %rax 						// return inserted WordEntry
@@ -498,7 +498,6 @@ wc_find_or_insert:
     popq %r12					/* restore r12 */
 
 	addq $8, %rsp				/* restore stack */
-
     ret
 
 
@@ -516,7 +515,11 @@ wc_find_or_insert:
  */
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
-	/* TODO: implement */
+	
+	
+	
+
+
 	ret
 
 
