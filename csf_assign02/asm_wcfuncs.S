@@ -265,11 +265,14 @@ wc_readnext:
 
 	pushq %r12					/* save r12 */
 	pushq %r13					/* save r13 */
+	pushq %r14					/* save r14 */
 	pushq %rbx					/* save rbx */
 
 	movq %rdi, %r12				/* r12 is file pointer */
 	movq %rsi, %r13 			/* r13 is the string containing the returned word */
 	movq $0, %rbx      			/* rbx is length of word read, initialize to 0 */
+
+	//xorq %r13, %r13				/* clear value at r13 */
 
 .L_loop_read:
 	movq %r12, %rdi				/* moves file pointer at r12 into rdi */
@@ -277,14 +280,16 @@ wc_readnext:
     cmpb $-1, %al	      		/* check if EOF */
     je .L_done_read       		/* if EOF, done */
 
-	movb %al, %dil				/* make %rdi point to the read-in word */
+	movb %al, %dil				/* copy read char to rdi */
+	movq %rax, %r14				/* save the value of rax in */
     call wc_isspace      		/* call whitespace checker */
 	cmpq $1, %rax				/* check if output was whitespace */
 	je .L_confirm_word			/* if whitespace, check if word was encountered */
 
     cmpq $MAX_WORDLEN, %rbx 	/* compare length of word with MAX_WORDLEN */
-	jl .L_word_found			/* if number exceeds MAX_WORDLEN, return word */
+	jge .L_word_found			/* if number exceeds MAX_WORDLEN, return word */
 
+	movq %r14, %rax 			/* retrieve value of rax (the character) */
     movb %al, (%r13, %rbx)		/* store character in returned string */
 	incq %rbx              		/* increment length */
     jmp .L_loop_read        	/* repeat the loop */
@@ -301,16 +306,20 @@ wc_readnext:
     ja .L_word_found     		/* if nonzero, word was found */
 
 	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
 	popq %r12					/* restore r12 */
 	addq $8, %rsp				/* restore stack */
     ret
     
 .L_word_found:
-	movb $0, 1(%r13, %rbx)  	/* null-terminate the word */
+	//incq %rbx					/* inc length to reach null term position */
+	movb $0, (%r13, %rbx)  		/* null-terminate the word */
     movq $1, %rax          		/* set return value to 1 (successful) */
+	movq %r13, %rsi 			/* move string in r13 back to rsi */
 
 	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
     popq %r12					/* restore r12 */
 	addq $8, %rsp				/* restore stack */
