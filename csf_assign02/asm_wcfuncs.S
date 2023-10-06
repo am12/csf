@@ -429,7 +429,10 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	/* TODO: implement */
+	
+	
+
+
 	ret
 
 
