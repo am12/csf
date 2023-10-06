@@ -461,7 +461,6 @@ wc_dict_find_or_insert:
  */
 	.globl wc_free_chain
 wc_free_chain:
-	
 	subq $8, %rbx								/* align stack*/
 	movq %rdi, %rbx								/* move pointer to head into r10 */
 
@@ -477,8 +476,6 @@ wc_free_chain:
 .L_finishedfree:
 	addq $8, %rbx								/* restore stack*/
 	ret
-
-
 
 /*
 vim:ft=gas:
