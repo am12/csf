@@ -361,46 +361,47 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	pushq %rbx				/* save callee-saved register and align stack */
-	movq %rdi, %rbx	/* move current character value into %r11b */
- 	cmpq $0, %rdi		/* if curr char is null*/
+	subq $8, %rbx				/* align stack */
+	movq %rdi, %rbx				/* move curr char into %r11b */
+ 	cmpq $0, %rdi				/* if curr char is null*/
 	je .L_removed
+	incq %rbx					/* go next */
 
 .L_find_end:
- 	movb (%rbx), %r11b	/* move current character value into %r11b */
- 	cmpb $0, %r11b		/* if curr char is null*/
- 	je .L_loopalpha		/* found null*/
+ 	movb (%rbx), %r11b			/* move current character value into %r11b */
+ 	cmpb $0, %r11b				/* if curr char is null*/
+ 	je .L_loopalpha				/* found null*/
 
- 	incq %rbx			/*keep going if not found*/
+ 	incq %rbx					/*keep going if not found*/
  	jmp .L_find_end
 
 .L_loopalpha:
-	cmpq %rdi, %rbx			/* check if pointer is at beginning of string */
-	je .L_back_alpha/* if it is, we have to move back to the beginning */
+	cmpq %rdi, %rbx				/* if curr is at front of string */
+	je .L_back_alpha			/* if yes, we trim*/
 
-	movb (%rbx), %dil		/* move current chatacter into param for is_alpha */
-	call wc_isalpha			/* call wc_isalpha to check if current char is alpha */
+	movb (%rbx), %dil			/* move curr char into func input */
+	call wc_isalpha				/*  check if is alpha */
 
-	cmpq $1, %rax			/* check if current char is alpha */
-	je .L_back_alpha/* if it is, we found our last character */
-							/* otherwise we have to keep moving back */
-	decq %rbx				/* decrement pointer to previous char */
-	jmp .L_loopalpha		/* jump to .LloopbackAlpha */
+	cmpq $1, %rax				/*  check if is alpha */
+	je .L_back_alpha			/* if yes we go trim */
+
+	decq %rbx					/* go to previous */
+	jmp .L_loopalpha			/* restart loop */
 
 .L_back_alpha:
-	movb (%rbx), %dil
- 	call wc_isalpha
- 	cmpq $1, %rax
+	movb (%rbx), %dil			/* move curr char into func input */
+ 	call wc_isalpha				/* check if is alpha*/
+ 	cmpq $1, %rax				/*if char, we go next */
  	je .L_setNull
- 	movb $0, (%rbx)			/* otherwise, set the current character to null */
-	jmp .L_removed			/* jump to .Lreturn */
+ 	movb $0, (%rbx)				/* if not we set curr to null */
+	jmp .L_removed				/* jump to .Lreturn */
 
 .L_setNull:
-	addq $1, %rbx			/* increment pointer to next char */
-	movb $0, (%rbx)			/* set the next character to null */
+	incq %rbx					/* go to next char*/
+	movb $0, (%rbx)				/* set curr to null */
 
 .L_removed:
-    popq %rbx				/* restore callee-saved register and restore stack */
+    addq $8, %rbx				/* restore stack */
  	ret
 
 /*
@@ -452,8 +453,23 @@ wc_dict_find_or_insert:
  */
 	.globl wc_free_chain
 wc_free_chain:
-	/* TODO: implement */
+	
+	subq $8, %rbx								/* align stack*/
+	movq %rdi, %rbx								/* move pointer to head into r10 */
+
+.L_looptofree:
+	cmpq $0, %rbx								/* if curr is null, end of list*/
+	je .L_finishedfree							/*return if null */
+
+	movq %rbx, %rdi								/* store curr obj */
+	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx		/* store next obj */
+	call free									/* free curr obj */
+	jmp .L_looptofree							/* move to next obj */
+
+.L_finishedfree:
+	addq $8, %rbx								/* restore stack*/
 	ret
+
 
 
 /*
