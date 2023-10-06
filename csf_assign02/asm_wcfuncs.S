@@ -269,21 +269,21 @@ wc_readnext:
 
 	movq %rdi, %r12				/* r12 is file pointer */
 	movq %rsi, %r13 			/* r13 is the string containing the returned word */
-	movq $0, %rbx      			/* r10 is length of word read, initialize to 0 */
+	movq $0, %rbx      			/* rbx is length of word read, initialize to 0 */
 
 .L_loop_read:
 	movq %r12, %rdi				/* moves file pointer at r12 into rdi */
     call fgetc            		/* call the fgetc function to read a character into %al */
-    cmpq $-1, (%rax)      		/* check if EOF */
-	xorq %rax, %rax 			/* clear rax pointer */
+    cmpb $-1, %al	      		/* check if EOF */
     je .L_done_read       		/* if EOF, done */
 
 	movb %al, %dil				/* make %rdi point to the read-in word */
-    call wc_isspace      		/* check if whitespace */
-	jnz .L_confirm_word			/* if whitespace, check if word was encountered */
+    call wc_isspace      		/* call whitespace checker */
+	cmpq $1, %rax				/* check if output was whitespace */
+	je .L_confirm_word			/* if whitespace, check if word was encountered */
 
-    cmpq %rbx, MAX_WORDLEN 		/* compare length of word with MAX_WORDLEN */
-	jae .L_word_found			/* if number exceeds MAX_WORDLEN, return word */
+    cmpq $MAX_WORDLEN, %rbx 	/* compare length of word with MAX_WORDLEN */
+	jl .L_word_found			/* if number exceeds MAX_WORDLEN, return word */
 
     movb %al, (%r13, %rbx)		/* store character in returned string */
 	incq %rbx              		/* increment length */
