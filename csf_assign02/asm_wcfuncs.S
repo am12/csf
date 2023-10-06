@@ -272,8 +272,6 @@ wc_readnext:
 	movq %rsi, %r13 			/* r13 is the string containing the returned word */
 	movq $0, %rbx      			/* rbx is length of word read, initialize to 0 */
 
-	//xorq %r13, %r13				/* clear value at r13 */
-
 .L_loop_read:
 	movq %r12, %rdi				/* moves file pointer at r12 into rdi */
     call fgetc            		/* call the fgetc function to read a character into %al */
