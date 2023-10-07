@@ -26,7 +26,7 @@
 	.section .bss
 	.align 4	
 
-g_inserted:
+glob_inserted:
 	.space 4
 
 	.section .rodata
@@ -352,29 +352,28 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
-	subq $8, %rsp
+	subq $8, %rsp		/* align stack */
 
 .L_ifnull:
-	movb (%rdi), %r10b	/* move current character value into %r11b */
-	cmpb $0, %r10b		/* if curr char is null*/
-	je .L_retlow		/* return current hash if null*/
+	movb (%rdi), %r10b	/* move current character value into r10 */
+	cmpb $0, %r10b		/* if curr char is null */
+	je .L_retlow		/* return if null */
 
-	cmpb $65, %r10b		/* if greater or equal, it might be upper*/
-	jl .L_next			/* if less than, it is not upper*/
+	cmpb $65, %r10b		/* if greater or equal, it might be upper */
+	jl .L_next			/* if less than, it is not upper */
 
-	cmpb $90, %r10b		/* if less than or equal, it is upper*/
+	cmpb $90, %r10b		/* if less than or equal, it is upper */
 	jg .L_next			/* if greater, it is not upper*/
 
 	addb $32, %r10b		/* change char to lowercase */
-	movb %r10b, (%rdi)	/* move char back*/
-	jmp .L_ifnull
+	movb %r10b, (%rdi)	/* move char back */
 
 .L_next:
-	incq %rdi			/*go to next*/
-	jmp .L_ifnull
+	incq %rdi			/* go to next */
+	jmp .L_ifnull		/* go back to loop */
 
 .L_retlow:
-	addq $8, %rsp
+	addq $8, %rsp 		/* restore stack */
 	ret
 
 
@@ -390,51 +389,43 @@ wc_trim_non_alpha:
 	subq $8, %rsp				/* align stack */
 
 	pushq %rbx 					/* save rbx */
+	pushq %r12 					/* save r12 */
 
-	movq %rdi, %rbx				/* move curr char into %rbx */
- 	cmpq $0, %rdi				/* if curr char is null*/
-	je .L_removed
-	incq %rbx					/* go next */
+	movq %rdi, %rbx				/* move string into rbx, a roving cur pointer */
+	movq %rbx, %r12				/* also save head into r12 */
+ 	cmpq $0, %rbx				/* check if pointer is null */
+	je .L_finish_trim			/* exit if pointer is null */
 
 .L_find_end:
- 	movb (%rbx), %r11b			/* move current character value into %r11b */
- 	cmpb $0, %r11b				/* if curr char is null*/
- 	je .L_loopalpha				/* found null*/
+ 	movb (%rbx), %r11b			/* move current character value into r11 */
+ 	cmpb $0, %r11b				/* check if curr char is null */
+ 	je .L_find_start			/* if null, go to next loop */
 
- 	incq %rbx					/*keep going if not found*/
- 	jmp .L_find_end
+ 	incq %rbx					/* if not found, move to next char */
+ 	jmp .L_find_end				/* keep going */
 
-.L_loopalpha:
-	cmpq %rdi, %rbx				/* if curr is at front of string */
-	je .L_back_alpha			/* if yes, we trim*/
+.L_find_start:
+	cmpq %r12, %rbx				/* check if cur pointer is past front of string */
+	jl .L_finish_trim			/* if yes, we end */
 
 	movb (%rbx), %dil			/* move curr char into func input */
-	call wc_isalpha				/*  check if is alpha */
+	call wc_isalpha				/* check if is alpha */
+	cmpq $1, %rax				/* check if output was alpha */
+	je .L_finish_trim			/* if yes, we end */
 
-	cmpq $1, %rax				/*  check if is alpha */
-	je .L_back_alpha			/* if yes we go trim */
-
+	movb $0, (%rbx) 			/* terminate the curr char */
 	decq %rbx					/* go to previous */
-	jmp .L_loopalpha			/* restart loop */
+	jmp .L_find_start			/* restart loop */
 
-.L_back_alpha:
-	movb (%rbx), %dil			/* move curr char into func input */
- 	call wc_isalpha				/* check if is alpha*/
- 	cmpq $1, %rax				/* if char, we go next */
- 	je .L_setNull
- 	movb $0, (%rbx)				/* if not we set curr to null */
-	jmp .L_removed				/* jump to .Lreturn */
+.L_finish_trim:
+	movq %r12, %rdi				/* restore rdi */
 
-.L_setNull:
-	incq %rbx					/* go to next char*/
-	movb $0, (%rbx)				/* set curr to null */
-
-.L_removed:
-
+	popq %r12 					/* restore r12 */
 	popq %rbx					/* restore rbx */
 
     addq $8, %rsp				/* restore stack */
  	ret
+
 
 /*
  * Search the specified linked list of WordEntry objects for an object
@@ -484,7 +475,7 @@ wc_find_or_insert:
 	
 .L_found_match:
 
-	movq $0, (%r14)							// inserted is 0
+	movl $0, (%r14)							// inserted is 0
 	movq %rbx, %rax							// return the found WordEntry
 	jmp .L_dict_find_cleanup				// jump to cleanup
 
@@ -494,15 +485,14 @@ wc_find_or_insert:
 	call malloc 							// call malloc
 	movq $0, (%rax) 						// clear the values in the malloc'd area
 	movq %rax, %rbx							// move returned new WordEntry to rbx
+	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
+	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the new WordEntry to head WordEntry
 
 	movq %rbx, %rdi 						// move word section to destination position
 	movq %r13, %rsi 						// move source string to source position
 	call wc_str_copy						// call string copy to copy string into rdi 
 
-	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
-	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the new WordEntry to head WordEntry
-	movq $1, (%r14) 						// inserted is 1
-
+	movl $1, (%r14) 						// inserted is 1
 	movq %rbx, %rax 						// return inserted WordEntry
 
 .L_dict_find_cleanup:
@@ -551,7 +541,7 @@ wc_dict_find_or_insert:
 	movq %rdx, %rbx 			/* move hash value into rbx */
 	
 	xorq %rdx, %rdx 			/* clear third arg (inserted) to call find or insert */
-	movq $g_inserted, %rdx		/* move pointer to int as third arg */	
+	movq $glob_inserted, %rdx	/* move pointer to int as third arg */	
 	movq %r12, %r15				/* move table into r15 */
 	imulq $8, %rbx				/* multiply offset by 8 bytes (for pointer) */
 	addq %rbx, %r15				/* offset the table by the index */
@@ -559,7 +549,7 @@ wc_dict_find_or_insert:
 	movq %r14, %rsi 			/* move the string to add as second arg */
 	call wc_find_or_insert		/* call find or insert */
 	
-	movl $g_inserted, %r10d		/* move value stored in inserted */
+	movl $glob_inserted, %r10d	/* move value stored in inserted */
 	cmpl $0, (%r10d)			/* check if new WordEntry was inserted */
 	je .L_return_word			/* jump to return if not inserted */
 	
@@ -591,7 +581,7 @@ wc_free_chain:
 	movq %rdi, %rbx								/* move pointer to head into r10 */
 
 .L_looptofree:
-	cmpq $0, %rbx								/* if curr is null, end of list*/
+	cmpq $0, %rbx								/* if curr is null, end of list */
 	je .L_finishedfree							/* return if null */
 
 	movq %rbx, %rdi								/* store curr obj */
@@ -600,7 +590,7 @@ wc_free_chain:
 	jmp .L_looptofree							/* move to next obj */
 
 .L_finishedfree:
-	addq $8, %rbx								/* restore stack*/
+	addq $8, %rbx								/* restore stack */
 	ret
 
 /*

@@ -204,6 +204,31 @@ void test_trim_non_alpha(TestObjs *objs) {
   ASSERT(0 == strcmp("O_O...", (const char *) buf));
   wc_trim_non_alpha(buf);
   ASSERT(0 == strcmp("O_O", (const char *) buf));
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("O_O", (const char *) buf));
+
+  strcpy((char *) buf, (const char *) "O-");
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("O", (const char *) buf));
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("O", (const char *) buf));
+
+  strcpy((char *) buf, (const char *) "");
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("", (const char *) buf));
+
+  strcpy((char *) buf, (const char *) "_sdwe_12092");
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("_sdwe", (const char *) buf));
+
+  strcpy((char *) buf, (const char *) "__12092");
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("", (const char *) buf));
+
+  strcpy((char *) buf, (const char *) "0");
+  wc_trim_non_alpha(buf);
+  ASSERT(0 == strcmp("", (const char *) buf));
+
 }
 
 void test_find_or_insert(TestObjs *objs) {
