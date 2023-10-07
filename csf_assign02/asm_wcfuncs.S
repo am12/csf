@@ -23,11 +23,16 @@
 /* Size of the WordEntry data type */
 #define WORDENTRY_SIZE 	(WORDENTRY_NEXT_OFFSET+8)
 
+	.section .bss
+	.align 4	
+
+g_inserted:
+	.space 4
+
 	.section .rodata
 /* Define any string constants or read-only data here */
 
 	.section .text
-
 
 /*
  * Compute a hash code for the given NUL-terminated
@@ -48,22 +53,30 @@
  */
 	.globl wc_hash
 wc_hash:
-	movq $5381, %r10
 	subq $8, %rsp
 
+	pushq %r12
+	pushq %r13 
+
+	movq %rdi, %r12
+	xorq %rax, %rax			/* clear rax */
+	movl $5381, %eax	
+	xorq %r13, %r13			/* reset character value */
+	
 .L_ifhash:
-	movq $0, %r11		/* reset character value */
-	movb (%rdi), %r11b	/* move current character value into %r11b */
-	cmpb $0, %r11b		/* if curr char is null */
-	je .L_hashd			/* return current hash if null */
-						/* calculate if not null */
-	imulq $33, %r10		/* multiply hash by 33 */
-	addq %r11, %r10		/* add calculated hash to current hash */
-	incq %rdi			/* move to next char */
+	movzbl (%r12), %r13d	/* move current character value into %r13d */
+	testl %r13d, %r13d		/* if curr char is null */
+	jz .L_hashd				/* return current hash if null */
+							/* calculate if not null */
+	imull $33, %eax			/* multiply hash by 33 */
+	addl %r13d, %eax		/* add calculated hash to current hash */
+	incq %r12				/* move to next char */
 	jmp .L_ifhash
 
 .L_hashd:
-	movq %r10, %rax
+
+	popq %r13
+	popq %r12 
 	addq $8, %rsp
 	ret
 
@@ -526,20 +539,29 @@ wc_dict_find_or_insert:
 	call wc_hash				/* call hash function, result in rax */
 	movq %r13, %rcx				/* move num buckets as dividend */
 	xorq %rdx, %rdx				/* clear rdx (where remainder goes) */
-	divq %rcx 					/* integer divide, remainder in rdx */
+	idivq %rcx 					/* integer divide, remainder in rdx */
 	movq %rdx, %rbx 			/* move hash value into rbx */
 	
 	xorq %rdx, %rdx 			/* clear third arg (inserted) to call find or insert */
-	movq (%r12, %rbx), %rdi		/* move the specific WordEntry in hash table to first arg */
+	movq $g_inserted, %rdx		/* move pointer to int as third arg */
+	pushq %r12					
+	imulq $8, %rbx
+	addq %rbx, %r12
+	movq (%r12), %rdi			/* move the specific WordEntry in hash table to first arg */
 	movq %r14, %rsi 			/* move the string to add as second arg */
 	call wc_find_or_insert		/* call find or insert */
+	popq %r12
+
 	
-	cmpq $0, (%rdx)				/* check if new WordEntry was inserted */
+	movl $g_inserted, %r10d		/* move value stored in inserted */
+	cmpl $0, (%r10d)			/* check if new WordEntry was inserted */
 	je .L_return_word			/* jump to return if not inserted */
 	
-	movq %rdx, (%r12, %rbx)		/* if inserted, set the head of list to new WordEntry */
+	movq %rax, (%r12, %rbx)		/* if inserted, set the head of list to new WordEntry */
 
 .L_return_word: 
+
+	movq %r12, %rdi				/* move hash table back to arg it was passed in */
 
 	popq %rbx					/* restore rbx */
 	popq %r14					/* restore r14 */
