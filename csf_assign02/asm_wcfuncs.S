@@ -387,8 +387,11 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	subq $8, %rbx				/* align stack */
-	movq %rdi, %rbx				/* move curr char into %r11b */
+	subq $8, %rsp				/* align stack */
+
+	pushq %rbx 					/* save rbx */
+
+	movq %rdi, %rbx				/* move curr char into %rbx */
  	cmpq $0, %rdi				/* if curr char is null*/
 	je .L_removed
 	incq %rbx					/* go next */
@@ -427,7 +430,10 @@ wc_trim_non_alpha:
 	movb $0, (%rbx)				/* set curr to null */
 
 .L_removed:
-    addq $8, %rbx				/* restore stack */
+
+	popq %rbx					/* restore rbx */
+
+    addq $8, %rsp				/* restore stack */
  	ret
 
 /*
@@ -464,7 +470,7 @@ wc_find_or_insert:
 
 .L_loop_search_match:
 	
-	cmpq $0, %rbx 							// check if current is null 
+	cmpq $0, %rbx							// check if current is null 
 	je .L_not_found_match					// if reached end, did not find
 
 	movq %rbx, %rdi 						// move word into LHS input
@@ -486,6 +492,7 @@ wc_find_or_insert:
 
 	movq $WORDENTRY_SIZE, %rdi 				// pass size of WordEntry to malloc 
 	call malloc 							// call malloc
+	movq $0, (%rax) 						// clear the values in the malloc'd area
 	movq %rax, %rbx							// move returned new WordEntry to rbx
 
 	movq %rbx, %rdi 						// move word section to destination position
@@ -529,6 +536,7 @@ wc_dict_find_or_insert:
 	pushq %r12					/* save r12 */
 	pushq %r13					/* save r13 */
 	pushq %r14					/* save r14 */
+	pushq %r15					/* save r15 */
 	pushq %rbx					/* save rbx */
 
 	movq %rdi, %r12				/* r12 is hash table of WordEntries */
@@ -543,15 +551,13 @@ wc_dict_find_or_insert:
 	movq %rdx, %rbx 			/* move hash value into rbx */
 	
 	xorq %rdx, %rdx 			/* clear third arg (inserted) to call find or insert */
-	movq $g_inserted, %rdx		/* move pointer to int as third arg */
-	pushq %r12					
-	imulq $8, %rbx
-	addq %rbx, %r12
-	movq (%r12), %rdi			/* move the specific WordEntry in hash table to first arg */
+	movq $g_inserted, %rdx		/* move pointer to int as third arg */	
+	movq %r12, %r15				/* move table into r15 */
+	imulq $8, %rbx				/* multiply offset by 8 bytes (for pointer) */
+	addq %rbx, %r15				/* offset the table by the index */
+	movq (%r15), %rdi			/* move the specific WordEntry in hash table to first arg */
 	movq %r14, %rsi 			/* move the string to add as second arg */
 	call wc_find_or_insert		/* call find or insert */
-	popq %r12
-
 	
 	movl $g_inserted, %r10d		/* move value stored in inserted */
 	cmpl $0, (%r10d)			/* check if new WordEntry was inserted */
@@ -564,6 +570,7 @@ wc_dict_find_or_insert:
 	movq %r12, %rdi				/* move hash table back to arg it was passed in */
 
 	popq %rbx					/* restore rbx */
+	popq %r15					/* restore r15 */
 	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
     popq %r12					/* restore r12 */

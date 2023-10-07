@@ -15,6 +15,7 @@
 #define WORDENTRY_COUNT_OFFSET  (MAX_WORDLEN+1)
 
 	.section .rodata
+<<<<<<< HEAD
 fileRead: .string "r"									/* read only string literal for fopen */
 fileOpenError: .string "Error opening file\n"			/* error message string literal for fopen */
 argvError: .string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
@@ -22,6 +23,11 @@ totalWord: .string "Total words read: %u\n"				/* print statement for total word
 uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
 bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats*/
 
+=======
+fileRead: 		.string "r"									/* read only string literal for fopen */
+fileOpenError: 	.string "Error opening file\n"				/* error message string literal for fopen */
+argvError: 		.string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
+>>>>>>> refs/remotes/origin/main
 
 	.section .text
 
@@ -58,7 +64,7 @@ main:
 .L_openFileStdin:
 	movq stdin, %rdi				/* load stdin to %rdi */
 	movq $fileRead, %rsi			/* store "r" in rsi */
-	call fdopen						/* open file */
+	call fopen						/* open file */
 	movq %rax, %r14					/* store file pointer */
 	cmpq $0, %r14
 	jne .L_openFileNormal
