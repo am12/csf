@@ -14,9 +14,9 @@
 #define HASHTABLE_SIZE 13249
 
 	.section .rodata
-fileRead: .string "r"									/* read only string literal for fopen */
-fileOpenError: .string "Error opening file\n"			/* error message string literal for fopen */
-argvError: .string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
+fileRead: 		.string "r"									/* read only string literal for fopen */
+fileOpenError: 	.string "Error opening file\n"				/* error message string literal for fopen */
+argvError: 		.string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
 
 	.section .text
 
@@ -53,7 +53,7 @@ main:
 .L_openFileStdin:
 	movq stdin, %rdi				/* load stdin to %rdi */
 	movq $fileRead, %rsi			/* store "r" in rsi */
-	call fdopen						/* open file */
+	call fopen						/* open file */
 	movq %rax, %r14					/* store file pointer */
 	cmpq $0, %r14
 	jne .L_openFileNormal

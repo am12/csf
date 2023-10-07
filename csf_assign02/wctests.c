@@ -252,14 +252,6 @@ void test_dict_find_or_insert(TestObjs *objs) {
   // "avis" and "ax's" should go in bucket 1
 
   p = wc_dict_find_or_insert(dict, 5, (const unsigned char *) "avis");
-
-  // for (int i=0 ; i < 5; i++) {
-  //   if (dict[i] != NULL) {
-  //     printf("%s", dict[i]->word);
-  //   } 
-  //   printf("%d", i);
-  // }
-
   ASSERT(dict[0] == NULL);
   ASSERT(dict[1] != NULL);
   ASSERT(dict[1] == p);
