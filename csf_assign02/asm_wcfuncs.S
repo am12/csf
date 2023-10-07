@@ -140,20 +140,32 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 wc_str_copy:
 	subq $8, %rsp			/* align stack */
 
+	pushq %r12				/* save value at r12 */
+	pushq %r13				/* save value at r13 */
+	pushq %r14				/* save value at r14 */
+
+	movq %rsi, %r12			/* move argument at rsi to r12 */
+	movq %rdi, %r13			/* move argument at rdi to r13 */	
+
 .L_loop_copy:
-    movb (%rsi), %al     	/* load the character from source to al */
-    test %al, %al     		/* check if it's the null terminator */
+    movb (%r12), %r14b     	/* load the character from source to al */
+    testb %r14b, %r14b    	/* check if it's the null terminator */
     je .L_done_copy        	/* if it is, done */
 
-    movb %al, (%rdi)    	/* otherwise, store the character in dest */
-    incq %rdi            	/* increment dest pointer */
-    incq %rsi            	/* increment source pointer */
+    movb %r14b, (%r13)    	/* otherwise, store the character in dest */
+    incq %r13            	/* increment dest pointer */
+    incq %r12            	/* increment source pointer */
 
 	jmp .L_loop_copy      	/* repeat the loop */
 
 .L_done_copy:
-    movq $0, (%rdi)         /* null-terminate dest */
-	addq $8, %rsp			/* restore stack */
+    movq $0, (%r13)         /* null-terminate dest */
+	movq %r13, %rdi			/* move string to rdi */ 
+
+	popq %r14				/* restore r14 */
+	popq %r13				/* restore r13 */
+	popq %r12				/* restore r12 */
+	addq $8, %rsp			/* restore stack */	
 	ret
 
 /*
@@ -302,19 +314,14 @@ wc_readnext:
 	xorq %rax, %rax 			/* clears rax pointer */
 	cmpq $0, %rbx 				/* check if length of word is nonzero */
     ja .L_word_found     		/* if nonzero, word was found */
-
-	popq %rbx					/* restore rbx */
-	popq %r14					/* restore r14 */
-	popq %r13					/* restore r13 */
-	popq %r12					/* restore r12 */
-	addq $8, %rsp				/* restore stack */
-    ret
+	jmp .L_cleanup_readnext 	/* otherwise, cleanup and return */
     
 .L_word_found:
 	movb $0, (%r13, %rbx)  		/* null-terminate the word */
     movq $1, %rax          		/* set return value to 1 (successful) */
 	movq %r13, %rsi 			/* move string in r13 back to rsi */
 
+.L_cleanup_readnext:
 	popq %rbx					/* restore rbx */
 	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
@@ -397,7 +404,7 @@ wc_trim_non_alpha:
 .L_back_alpha:
 	movb (%rbx), %dil			/* move curr char into func input */
  	call wc_isalpha				/* check if is alpha*/
- 	cmpq $1, %rax				/*if char, we go next */
+ 	cmpq $1, %rax				/* if char, we go next */
  	je .L_setNull
  	movb $0, (%rbx)				/* if not we set curr to null */
 	jmp .L_removed				/* jump to .Lreturn */
@@ -429,11 +436,64 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	
-	
+	subq $8, %rsp				/* align stack */
 
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %r14					/* save r14 */
+	pushq %rbx					/* save rbx */
 
-	ret
+	movq %rdi, %r12				/* r12 is head WordEntry */
+	movq %rsi, %r13 			/* r13 is the specified string */
+	movq %rdx, %r14      		/* r14 is the int representing inserted */
+
+	movq %r12, %rbx				/* rbx is the current WordEntry */
+
+.L_loop_search_match:
+	
+	cmpq $0, %rbx 							// check if current is null 
+	je .L_not_found_match					// if reached end, did not find
+
+	movq %rbx, %rdi 						// move word into LHS input
+	movq %r13, %rsi 						// move target string into RHS input
+	call wc_str_compare 					// compare strings
+	cmpq $0, %rax  							// check if equal
+	je .L_found_match						// if equal, found match
+
+	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx 	// move current to next
+	jmp .L_loop_search_match 				// loop back to top
+	
+.L_found_match:
+
+	movq $0, (%r14)							// inserted is 0
+	movq %rbx, %rax							// return the found WordEntry
+	jmp .L_dict_find_cleanup				// jump to cleanup
+
+.L_not_found_match: 
+
+	movq $WORDENTRY_SIZE, %rdi 				// pass size of WordEntry to malloc 
+	call malloc 							// call malloc
+	movq %rax, %rbx							// move returned new WordEntry to rbx
+
+	movq %rbx, %rdi 						// move word section to destination position
+	movq %r13, %rsi 						// move source string to source position
+	call wc_str_copy						// call string copy to copy string into rdi 
+
+	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
+	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the new WordEntry to head WordEntry
+	movq $1, (%r14) 						// inserted is 1
+
+	movq %rbx, %rax 						// return inserted WordEntry
+
+.L_dict_find_cleanup:
+	
+	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
+	popq %r13					/* restore r13 */
+    popq %r12					/* restore r12 */
+
+	addq $8, %rsp				/* restore stack */
+    ret
 
 
 /*
@@ -450,8 +510,44 @@ wc_find_or_insert:
  */
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
-	/* TODO: implement */
-	ret
+	
+	subq $8, %rsp				/* align stack */
+
+	pushq %r12					/* save r12 */
+	pushq %r13					/* save r13 */
+	pushq %r14					/* save r14 */
+	pushq %rbx					/* save rbx */
+
+	movq %rdi, %r12				/* r12 is hash table of WordEntries */
+	movq %rsi, %r13 			/* r13 is number of buckets */
+	movq %rdx, %r14      		/* r14 is the string to add */
+
+	movq %r14, %rdi 			/* move the string to argument for hash */
+	call wc_hash				/* call hash function, result in rax */
+	movq %r13, %rcx				/* move num buckets as dividend */
+	xorq %rdx, %rdx				/* clear rdx (where remainder goes) */
+	divq %rcx 					/* integer divide, remainder in rdx */
+	movq %rdx, %rbx 			/* move hash value into rbx */
+	
+	xorq %rdx, %rdx 			/* clear third arg (inserted) to call find or insert */
+	movq (%r12, %rbx), %rdi		/* move the specific WordEntry in hash table to first arg */
+	movq %r14, %rsi 			/* move the string to add as second arg */
+	call wc_find_or_insert		/* call find or insert */
+	
+	cmpq $0, (%rdx)				/* check if new WordEntry was inserted */
+	je .L_return_word			/* jump to return if not inserted */
+	
+	movq %rdx, (%r12, %rbx)		/* if inserted, set the head of list to new WordEntry */
+
+.L_return_word: 
+
+	popq %rbx					/* restore rbx */
+	popq %r14					/* restore r14 */
+	popq %r13					/* restore r13 */
+    popq %r12					/* restore r12 */
+
+	addq $8, %rsp				/* restore stack */
+    ret
 
 
 /*
@@ -467,7 +563,7 @@ wc_free_chain:
 
 .L_looptofree:
 	cmpq $0, %rbx								/* if curr is null, end of list*/
-	je .L_finishedfree							/*return if null */
+	je .L_finishedfree							/* return if null */
 
 	movq %rbx, %rdi								/* store curr obj */
 	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx		/* store next obj */
