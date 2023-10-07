@@ -15,7 +15,6 @@
 #define WORDENTRY_COUNT_OFFSET  (MAX_WORDLEN+1)
 
 	.section .rodata
-<<<<<<< HEAD
 fileRead: .string "r"									/* read only string literal for fopen */
 fileOpenError: .string "Error opening file\n"			/* error message string literal for fopen */
 argvError: .string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
@@ -23,11 +22,6 @@ totalWord: .string "Total words read: %u\n"				/* print statement for total word
 uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
 bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats*/
 
-=======
-fileRead: 		.string "r"									/* read only string literal for fopen */
-fileOpenError: 	.string "Error opening file\n"				/* error message string literal for fopen */
-argvError: 		.string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
->>>>>>> refs/remotes/origin/main
 
 	.section .text
 
@@ -99,6 +93,7 @@ main:
 
 
 
+
 /* */
 .L_readFile:
 	cmpq $HASHTABLE_SIZE, %r15			/*rbx is pointer to hash, if less than continue, if not return*/
@@ -133,7 +128,7 @@ main:
 	jmp .L_readFile															/* continue to readFile*/
 
 .L_printStat:
-	/* PRINT TAT */
+	/* PRINT STAT */
 	call fprintf
 	jmp .L_end
 
