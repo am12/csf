@@ -12,11 +12,16 @@
 
 #define MAX_WORDLEN 63
 #define HASHTABLE_SIZE 13249
+#define WORDENTRY_COUNT_OFFSET  (MAX_WORDLEN+1)
 
 	.section .rodata
 fileRead: .string "r"									/* read only string literal for fopen */
 fileOpenError: .string "Error opening file\n"			/* error message string literal for fopen */
 argvError: .string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
+totalWord: .string "Total words read: %u\n"				/* print statement for total word count */
+uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
+bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats*/
+
 
 	.section .text
 
@@ -76,21 +81,55 @@ main:
 	imulq $HASHTABLE_SIZE, %rdi			/* malloc memory for hashtable */
 	call malloc
 	movq %rax, %r15						/* pointer to hashtable to r15 */
+	movq $0, %r15 						/* clear hash# */
 
+	jmp .L_fillHash
+
+.L_fillHash:
+	movq %rdi, %dil						/* move file pointer for readnext */
+	call wc_readnext
+	cmpq $1, %rax						/* if 1, then next exists*/ 	
+	jne .L_readFile
+
+
+
+/* */
 .L_readFile:
-	movq $0, %rbx 					/* curr hash# */
-	cmpq $HASHTABLE_SIZE, %rbx		/* if less than continue, if not return*/
-	jge .L_end
+	cmpq $HASHTABLE_SIZE, %r15			/*rbx is pointer to hash, if less than continue, if not return*/
+	jge .L_printStat
+
+	incq %r15 
 	
-	incq %rbx 
-	
-	cmpq $0, 8(%rbx)				/* if curr word is null*/
-	je .L_readFile					/*next word */
+	cmpq $0, (%r15)					/* if curr word is null*/
+	je .L_readFile						/*next word */
 	jne .L_stat_counter
 
 .L_stat_counter:
-	incq %r11						/*unique word ++*/
-	
+	incq %r11												/*unique word count ++*/
+	cmpq %r13, WORDENTRY_COUNT_OFFSET(%r15)					/*compare best word count w curr count*/ 
+	jg .L_switchBestWord									/*if greater than, switch word */
+	je .L_checkWordLex										/* if its equal than, check word length; if less than move on */
+	jl .L_readFile	
+
+.L_checkWordNull:
+	cmpq $0, (%r15)
+	je .L_readFile							/*if null, continue readFile*/
+	jne .L_checkWordLex
+
+.L_checkWordLex:
+	cmpq %r12, (%r15)						/* compare best word and curr word */
+	jge .L_switchBestWord					/* if greater than or equal, switch word */
+	jl .L_readFile							/* if less than, continue readFile*/
+
+.L_switchBestWord:
+	movq (%r15), %r12														/* set curr word = best word */
+	movq WORDENTRY_COUNT_OFFSET(%r15), %r13									/* set curr count = best count */
+	jmp .L_readFile															/* continue to readFile*/
+
+.L_printStat:
+	/* PRINT TAT */
+	call fprintf
+	jmp .L_end
 
 .L_end:
 	popq %r15
