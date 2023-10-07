@@ -26,7 +26,7 @@
 	.section .bss
 	.align 4	
 
-glob_inserted:
+glob_inserted:  /* a pointer to store the value of inserted (int *) */
 	.space 4
 
 	.section .rodata
@@ -53,31 +53,31 @@ glob_inserted:
  */
 	.globl wc_hash
 wc_hash:
-	subq $8, %rsp
+	subq $8, %rsp			/* align stack */
 
-	pushq %r12
-	pushq %r13 
+	pushq %r12				/* save r12 */
+	pushq %r13 				/* save r13 */
 
-	movq %rdi, %r12
-	xorq %rax, %rax			/* clear rax */
-	movl $5381, %eax	
+	movq %rdi, %r12			/* r12 is the string */
+	xorq %rax, %rax			/* clear output */
+	movl $5381, %eax		/* move hash value into return */
 	xorq %r13, %r13			/* reset character value */
 	
 .L_ifhash:
-	movzbl (%r12), %r13d	/* move current character value into %r13d */
-	testl %r13d, %r13d		/* if curr char is null */
+	movzbl (%r12), %r13d	/* move current character value into r13 */
+	testl %r13d, %r13d		/* if curr char is null term */
 	jz .L_hashd				/* return current hash if null */
-							/* calculate if not null */
-	imull $33, %eax			/* multiply hash by 33 */
+							
+	imull $33, %eax			/* otherwise, calculate next hash */
 	addl %r13d, %eax		/* add calculated hash to current hash */
 	incq %r12				/* move to next char */
-	jmp .L_ifhash
+	jmp .L_ifhash			/* loop back */
 
 .L_hashd:
 
-	popq %r13
-	popq %r12 
-	addq $8, %rsp
+	popq %r13				/* restore r13 */
+	popq %r12 				/* restore r12 */
+	addq $8, %rsp			/* restore stack */
 	ret
 
 
@@ -108,10 +108,11 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	je .L_lhs_null			/* if null, jump to L_lhs_null */
 
 	cmpb $0, %r11b			/* check if rhs is null since lhs is NOT null */
-	je .L_lhs_longer		/* if null, then lhs is longer */
+	je .L_lhs_greater		/* if null, then lhs is longer */
 
-	cmpb %r10b, %r11b		/* compare char value */
-	jne .L_compare			/* if not equal, jump to compare */
+	cmpb %r10b, %r11b		/* compare char value (rhs - lhs = ?) */
+	jg .L_rhs_greater		/* if positive, then rhs > lhs */
+	jl .L_lhs_greater		/* if negative, lhs > rhs */
 
 	incq %rdi				/* look at the next chars since curr chars are equal */
 	incq %rsi					
@@ -120,14 +121,14 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 .L_lhs_null:						
 	cmpb $0, %r11b			/* check if rhs character is null */
 	je .L_equal				/* if true, both lhs and rhs are null */
-	jne .L_rhs_longer		/* if not, then rhs is longer */
+	jne .L_rhs_greater		/* if not, then rhs is longer */
 	
-.L_rhs_longer:				/* rhs is longer, return -1 */
+.L_rhs_greater:				/* rhs is longer, return -1 */
 	movl $-1, %eax
 	addq $8, %rsp
 	ret
 
-.L_lhs_longer:				/* lhs is longer, return 1 */
+.L_lhs_greater:				/* lhs is longer, return 1 */
 	movl $1, %eax
 	addq $8, %rsp
 	ret
@@ -136,11 +137,6 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
 	movl $0, %eax
 	addq $8, %rsp
 	ret
-
-.L_compare:					
-	subb %r11b, %r10b		/* comparing individual chars, rhs - lhs = ? */
-	js .L_rhs_longer		/* if negative, then rhs > lhs */
-	jns .L_lhs_longer		/* if positive, lhs > rhs */
 
 
 /*
@@ -239,7 +235,7 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	subq $8, %rsp
+	subq $8, %rsp			/* align stack */
 	movb %dil, %r10b		/* move a single char into r10b */
 
 	cmpb $65, %r10b			/* checks if c is possibly anything below 'A' */
@@ -252,20 +248,16 @@ wc_isalpha:
 	jl .L_isNot				/* if its lower, then it is not alphabetic */
 
 	cmpb $122, %r10b		/* checks if c is possibly anything above 'z' */
-	jle .L_isAlpha 			/* if its lower or equal, it is a lowercase letter (alphabetic) */
-
-.L_isNotA:
-	xorq %rax, %rax
-	ret						/* return 0 */
+	jle .L_isAlpha 			/* if its lower or equal, it is a lowercase letter (alphabetic) */	
 
 .L_isNot:
 	xorq %rax, %rax 		/* not alpha, return 0 */
-	addq $8, %rsp
-	ret
+	addq $8, %rsp			/* restore stack */
+	ret						
 
 .L_isAlpha:
 	movq $1, %rax			/* alpha, return 1 */
-	addq $8, %rsp
+	addq $8, %rsp			/* restore stack */
 	ret
 
 
@@ -462,39 +454,39 @@ wc_find_or_insert:
 
 .L_loop_search_match:
 	
-	cmpq $0, %rbx							// check if current is null 
-	je .L_not_found_match					// if reached end, did not find
+	cmpq $0, %rbx							/* check if current is null */
+	je .L_not_found_match					/* if reached end, did not find */
 
-	movq %rbx, %rdi 						// move word into LHS input
-	movq %r13, %rsi 						// move target string into RHS input
-	call wc_str_compare 					// compare strings
-	cmpq $0, %rax  							// check if equal
-	je .L_found_match						// if equal, found match
+	movq %rbx, %rdi 						/* move word into LHS input */
+	movq %r13, %rsi 						/* move target string into RHS input */
+	call wc_str_compare 					/* compare strings */
+	cmpq $0, %rax  							/* check if equal */
+	je .L_found_match						/* if equal, found match */
 
-	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx 	// move current to next
-	jmp .L_loop_search_match 				// loop back to top
+	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx 	/* move current to next */
+	jmp .L_loop_search_match 				/* loop back to top */
 	
 .L_found_match:
 
-	movl $0, (%r14)							// inserted is 0
-	movq %rbx, %rax							// return the found WordEntry
-	jmp .L_dict_find_cleanup				// jump to cleanup
+	movl $0, (%r14)							/* inserted is 0 */
+	movq %rbx, %rax							/* return the found WordEntry */
+	jmp .L_dict_find_cleanup				/* jump to cleanup */
 
 .L_not_found_match: 
 
-	movq $WORDENTRY_SIZE, %rdi 				// pass size of WordEntry to malloc 
-	call malloc 							// call malloc
-	movq $0, (%rax) 						// clear the values in the malloc'd area
-	movq %rax, %rbx							// move returned new WordEntry to rbx
-	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	// initialize count to 0
-	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	// prepend the new WordEntry to head WordEntry
+	movq $WORDENTRY_SIZE, %rdi 				/* pass size of WordEntry to malloc */
+	call malloc 							/* call malloc */
+	movq $0, (%rax) 						/* clear the values in the malloc'd area */
+	movq %rax, %rbx							/* move returned new WordEntry to rbx */
+	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	/* initialize count to 0 */
+	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	/* prepend the new WordEntry to head WordEntry */
 
-	movq %rbx, %rdi 						// move word section to destination position
-	movq %r13, %rsi 						// move source string to source position
-	call wc_str_copy						// call string copy to copy string into rdi 
+	movq %rbx, %rdi 						/* move word section to destination position */
+	movq %r13, %rsi 						/* move source string to source position */
+	call wc_str_copy						/* call string copy to copy string into rdi */
 
-	movl $1, (%r14) 						// inserted is 1
-	movq %rbx, %rax 						// return inserted WordEntry
+	movl $1, (%r14) 						/* inserted is 1 */
+	movq %rbx, %rax 						/* return inserted WordEntry */
 
 .L_dict_find_cleanup:
 	

@@ -5,3 +5,6 @@ Lauren worked on the assembly code and also wrote a few of the helper function.
 Alan worked on the majority of the C code implementation.
 
 MS2:
+Alan and Lauren worked together for the majority of the writing and debugging of functions. 
+Alan took charge for the find or insert and readnext functions, while Lauren did the string manipulation functions.
+Both worked on main, styling, and testing. 
