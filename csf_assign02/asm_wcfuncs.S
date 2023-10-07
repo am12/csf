@@ -257,6 +257,7 @@ wc_isalpha:
 .L_isNotA:
 	xorq %rax, %rax
 	ret						/* return 0 */
+
 .L_isNot:
 	xorq %rax, %rax 		/* not alpha, return 0 */
 	addq $8, %rsp
@@ -286,7 +287,7 @@ wc_isalpha:
  */
 	.globl wc_readnext
 wc_readnext:
-	subq $8, %rsp
+	subq $8, %rsp				/* align stack */
 
 	pushq %r12					/* save r12 */
 	pushq %r13					/* save r13 */
@@ -363,7 +364,7 @@ wc_tolower:
 	jl .L_next			/* if less than, it is not upper */
 
 	cmpb $90, %r10b		/* if less than or equal, it is upper */
-	jg .L_next			/* if greater, it is not upper*/
+	jg .L_next			/* if greater, it is not upper */
 
 	addb $32, %r10b		/* change char to lowercase */
 	movb %r10b, (%rdi)	/* move char back */
@@ -577,7 +578,7 @@ wc_dict_find_or_insert:
  */
 	.globl wc_free_chain
 wc_free_chain:
-	subq $8, %rbx								/* align stack*/
+	subq $8, %rbx								/* align stack */
 	movq %rdi, %rbx								/* move pointer to head into r10 */
 
 .L_looptofree:
