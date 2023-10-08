@@ -91,10 +91,9 @@ main:
 	cmpq $1, %rax						/* if 1, then next exists*/ 	
 	jne .L_readFile
 
+/*if read next exist, save curr word to hash table based on hash code and add to total word count*/
+/*unsure: how to search hash table for duplicates*/
 
-
-
-/* */
 .L_readFile:
 	cmpq $HASHTABLE_SIZE, %r15			/*rbx is pointer to hash, if less than continue, if not return*/
 	jge .L_printStat
@@ -118,6 +117,7 @@ main:
 	jne .L_checkWordLex
 
 .L_checkWordLex:
+/**fix compare word lex*/
 	cmpq %r12, (%r15)						/* compare best word and curr word */
 	jge .L_switchBestWord					/* if greater than or equal, switch word */
 	jl .L_readFile							/* if less than, continue readFile*/
