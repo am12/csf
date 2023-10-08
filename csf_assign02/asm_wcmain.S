@@ -20,32 +20,37 @@ fileOpenError: .string "Error opening file\n"			/* error message string literal 
 argvError: .string "Wrong number of arguments.\n"		/* error message string literal for invalid argv */
 totalWord: .string "Total words read: %u\n"				/* print statement for total word count */
 uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
-bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats*/
-
+bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats */
 
 	.section .text
 
 	.globl main
 main:
-	subq $8, %rsp
-							/*  r10 is total words count */
-							/*  r11 unique words count */
-	pushq %r12				/* best word pointer */
-	pushq %r13				/* best word count */
-	pushq %r14				/* file pointer */
-	pushq %r15				/* words hashtable */
+// SETUP MAIN VARIABLES
+	subq $8, %rsp			/* align stack */
 
-	cmpq $2, %rdi
-	je .L_openFileNormal		/* if two arguements */
-	cmpq $1, %rdi
-	je .L_openFileStdin			/* if one argument */
-								/* if neither, its wrong*/
-	movq $2, %rdi				/* set filestream to rdi */
-	movq $argvError, %rsi		/* print error message */
-	call fprintf
-	movq $1, %rax				/* return w code 1*/
-	jmp .L_end
+	pushq %r12				/* r12 is best word pointer */
+	pushq %r13				/* r13 is best word count */
+	pushq %r14				/* r14 is file pointer */
+	pushq %r15				/* r15 is words hashtable */
+	pushq %rbx				/* rbx is the total word count */
+	pushq %rbp				/* rbp is the unique words count */
 
+// READ FILE INPUT 
+	cmpq $2, %rdi				/* check if argc has 2 args */
+	je .L_openFileNormal		/* if two arguments, use file pointer */
+
+	cmpq $1, %rdi				/* check if argc has 1 arg */
+	je .L_openFileStdin			/* if one argument, use standard input */
+	
+								/* if neither, its wrong */		
+	movq $2, %rdi				/* set output stream to stderr */
+	movq $argvError, %rsi		/* load the error message */
+	call fprintf				/* print error message */
+	movq $1, %rax				/* return w errcode 1 */
+	jmp .L_end					/* end function */
+
+// OPEN FILE INPUT
 .L_openFileNormal:
 	mov 8(%rsi), %rdi				/* argv[1] to %rdi */
 	movq $fileRead, %rsi			/* store "r" in rsi */
@@ -55,6 +60,7 @@ main:
 	jne .L_correctOpen
 	jmp .L_errorFile			
 
+// OPEN STANDARD INPUT
 .L_openFileStdin:
 	movq stdin, %rdi				/* load stdin to %rdi */
 	movq $fileRead, %rsi			/* store "r" in rsi */
@@ -64,7 +70,7 @@ main:
 	jne .L_openFileNormal
 	jmp .L_errorFile				/* if null, handle as an error file */
 
-	/* if not opened file properly */
+// if not opened file properly
 .L_errorFile:
 	movq $2, %rdi				
 	movq $fileOpenError, %rsi	/* error message */
@@ -72,7 +78,7 @@ main:
 	movq $1, %rax				/* return w code 1 */
 	jmp .L_end
 
-	/* if did open file properly */
+// if did open file properly 
 .L_correctOpen:
 	movq $1, %rdi						/* size of struct */
 	addq $MAX_WORDLEN, %rdi	
@@ -85,8 +91,9 @@ main:
 
 	jmp .L_fillHash
 
+// GET THE HASH FUNCTION
 .L_fillHash:
-	movq %rdi, %dil						/* move file pointer for readnext */
+	movq %rdi, %rdi						/* move file pointer for readnext */
 	call wc_readnext
 	cmpq $1, %rax						/* if 1, then next exists*/ 	
 	jne .L_readFile
@@ -133,6 +140,9 @@ main:
 	jmp .L_end
 
 .L_end:
+
+	popq %rbp
+	popq %rbx
 	popq %r15
 	popq %r14
 	popq %r13
