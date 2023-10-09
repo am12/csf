@@ -31,14 +31,11 @@ debugString: .string "Outer: %u\n"
 	.globl main
 main:
 // SETUP MAIN VARIABLES
-	subq $8, %rsp		/* align stack */
-
 	pushq %r12			/* save r12 */	
 	pushq %r13			/* save r13 */		
 	pushq %r14			/* save r14 */	
 	pushq %r15			/* save r15 */	
-	pushq %rbx			/* save rbx */	
-	pushq %rbp			/* save rbp */	
+	pushq %rbx			/* save rbx */		
 
 	movq %rdi, %r12		/* r12 is argc */
 	movq %rsi, %r13		/* r13 is argv */
@@ -85,10 +82,10 @@ main:
 	xorq %r15, %r15					/* r15 is total word count */
 
 	movq $HASHTABLE_SIZE, %r10		/* store size of hash table */
-	addq $10, %r10 					/* add for padding */
-	imulq $8, %r10					/* calculate overall size of table */
+	addq $12, %r10 					/* add for padding */
 	movq %r10, %rdi					/* move to first arg */
-	call malloc						/* allocate memory for the table */
+	movq $8, %rsi 					/* 8 bytes for a pointer */
+	call calloc						/* allocate memory for the table */
 	movq %rax, %r12					/* move pointer to table to r12 */	
 
 // LOOPING FOR ENTRIES INTO HASH TABLE
@@ -106,21 +103,27 @@ main:
 	// lowercase and trim word
 	movq %rsi, %rdi				/* move word to first argument */
 	call wc_tolower 			/* lowercase the given word */
+	movq %rsi, %rdi				/* move returned word to first arg */
 	call wc_trim_non_alpha 		/* trim the given word */
 	
 	// insert the word to the dictionary
-	movq %rdi, %rdx						/* move word to third arg */
-	movq $HASHTABLE_SIZE, %rsi			/* move the size of hashtable to second arg */
-	movq %r12, %rdi						/* move hashtable to first arg */
-	call wc_dict_find_or_insert			/* insert word to hashtable */
-	xorq %r10, %r10						/* clear space in temp register r10 to hold return WordEntry */
-	movq %rax, %r10 					/* move WordEntry to r10 */
-	incq WORDENTRY_COUNT_OFFSET(%r10)	/* increment the count of WordEntry */
+	movq %rdi, %rdx							/* move word to third arg */
+	movq $HASHTABLE_SIZE, %rsi				/* move the size of hashtable to second arg */
+	movq %r12, %rdi							/* move hashtable to first arg */
+	call wc_dict_find_or_insert				/* insert word to hashtable */
+	xorq %r10, %r10							/* clear space in temp register r10 to hold return WordEntry */
+	movq %rax, %r10 						/* move WordEntry to r10 */
+	movq WORDENTRY_COUNT_OFFSET(%r10), %r11	/* r11 is the count of WordEntry */
+	incq %r11								/* increment the count */
+	movq %r11, WORDENTRY_COUNT_OFFSET(%r10)	/* return count to WordEntry */
+
+	//TEST
+	movq WORDENTRY_COUNT_OFFSET(%r10), %rcx
 
 	jmp .L_loadLoop						/* go back and loop */
 
 // GET STATISTICS
-.L_getStats: 
+.L_getStats: 			
 
 	movq %r14, %rdi			/* move file pointer to first arg */
 	call fclose 			/* close the file */
@@ -132,6 +135,9 @@ main:
 	
 	movq %r12, %r13			/* set top word to first element in array, as a dummy */
 
+	pushq %r15				/* save the value of total words */
+	subq $8, %rsp			/* align stack */
+
 .L_statsOuterLoop:
 
 	cmpl $HASHTABLE_SIZE, %ebx	/* compare the count of outer loop with size of hash table */
@@ -142,18 +148,18 @@ main:
 	movq %rbx, %rsi
 	call printf
 
-	leaq (%r12, %rbx, 8), %rbp	/* rbp is the pointer to current WordEntry */	
+	leaq (%r12, %rbx, 8), %r15	/* r15 is the pointer to current WordEntry */	
 
 .L_statsInnerLoop:
 
-	cmpq $0, %rbp				/* check whether current WordEntry pointer is null */
+	cmpq $0, %r15				/* check whether current WordEntry pointer is null */
 	je .L_statsOuterAfter		/* jump to outer if so */
-	cmpq $0, (%rbp) 			/* check whether word itself is null */
+	cmpq $0, (%r15) 			/* check whether word itself is null */
 	je .L_statsOuterAfter		/* jump to the outer loop if so */
 
 	incq %r14					/* increase the count of unique words */
 
-	movl WORDENTRY_COUNT_OFFSET(%rbp), %r10d 	/* r10 holds the current word count */
+	movl WORDENTRY_COUNT_OFFSET(%r15), %r10d 	/* r10 holds the current word count */
 	movl WORDENTRY_COUNT_OFFSET(%r13), %r11d 	/* r11 holds the best word count */
 	cmpl %r11d, %r10d						 	/* compare word counts */
 	jl .L_statsInnerAfter						/* iterate inner loop if the count is less than */
@@ -162,7 +168,7 @@ main:
 
 .L_statsCheckStrings:
 
-	movq %rbp, %rdi				/* move current word to first arg */
+	movq %r15, %rdi				/* move current word to first arg */
 	movq %r13, %rsi				/* move best word to second arg */
 	call wc_str_compare 		/* compare the strings */
 	cmpq $0, %rax				/* compare output with 0 (equal) */
@@ -171,11 +177,11 @@ main:
 // WHEN BETTER WORD IS FOUND, GET THAT WORDENTRY
 .L_betterWordFound:
 
-	movq %rbp, %r13				/* move the current word to best word position */
+	movq %r15, %r13				/* move the current word to best word position */
 
 .L_statsInnerAfter:
 
-	movq WORDENTRY_NEXT_OFFSET(%rbp), %rbp	/* move current entry to next */
+	movq WORDENTRY_NEXT_OFFSET(%r15), %r15	/* move current entry to next */
 	jmp .L_statsInnerLoop 					/* go back to the inner loop */
 
 .L_statsOuterAfter:
@@ -185,6 +191,10 @@ main:
 
 // PRINT ALL THE STATISTICS
 .L_printStats:
+
+	addq $8, %rsp				/* dealign stack */
+	popq %r15					/* retrieve value of total words */
+
 	// total words
 	movq $totalWord, %rdi					/* move total word string to first arg */
 	movq %r15, %rsi 						/* move count to second arg */
@@ -198,7 +208,8 @@ main:
 	// most frequent word
 	movq $bestWord, %rdi					/* move frequent word string to first arg */
 	movq (%r13), %rsi 						/* move word to second arg */
-	movq WORDENTRY_COUNT_OFFSET(%r13), %rdx /* move count to third arg */
+	movq WORDENTRY_COUNT_OFFSET(%r13), %r10 /* move position of count to r10 */
+	movq (%r10), %rdx						/* return value at count to third arg */			
 	call printf								/* print to stdout */
 
 // FREE ALL ALLOCATED MEMORY WITH FREE CHAIN
@@ -211,9 +222,13 @@ main:
 	cmpl $HASHTABLE_SIZE, %ebx	/* compare the count of outer loop with size of hash table */
 	jge .L_freeAfter			/* exit the whole set of loops once done iterating */
 
-	leaq (%r12, %rbx, 8), %rbp	/* rbp is the pointer to current WordEntry */
+	leaq (%r12, %rbx, 8), %r15	/* r15 is the pointer to current WordEntry */
 
-	movq %rbp, %rdi				/* move WordEntry to first arg */
+	movq (%r15), %r10			/* check the contents of WordEntry */
+	cmpq $0, %r10				/* compare with null */
+	je .L_freeAfter				/* continue if null */				
+
+	movq %r15, %rdi				/* move WordEntry to first arg */
 	call wc_free_chain 			/* free the chain of WordEntries */
 
 	incq %rbx					/* increment counter */
@@ -229,14 +244,11 @@ main:
 // CLEANUP VARIABLES AND RETURN
 .L_end:
 
-	popq %rbp			/* restore rbp */
 	popq %rbx			/* restore rbx */
 	popq %r15			/* restore r15 */
 	popq %r14			/* restore r14 */
 	popq %r13			/* restore r13 */
 	popq %r12			/* restore r12 */
-
-	addq $8, %rsp		/* restore stack */
 
 	ret
 
