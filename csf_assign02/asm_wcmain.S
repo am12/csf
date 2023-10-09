@@ -12,7 +12,7 @@
 
 #define MAX_WORDLEN 63
 #define HASHTABLE_SIZE 13249
-#define WORDENTRY_COUNT_OFFSET  (MAX_WORDLEN+1)
+#define WORDENTRY_COUNT_OFFSET (MAX_WORDLEN+1)
 
 	.section .rodata
 fileRead: .string "r"									/* read only string literal for fopen */
@@ -27,127 +27,145 @@ bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best 
 	.globl main
 main:
 // SETUP MAIN VARIABLES
-	subq $8, %rsp			/* align stack */
+	subq $8, %rsp		/* align stack */
 
-	pushq %r12				/* r12 is best word pointer */
-	pushq %r13				/* r13 is best word count */
-	pushq %r14				/* r14 is file pointer */
-	pushq %r15				/* r15 is words hashtable */
-	pushq %rbx				/* rbx is the total word count */
-	pushq %rbp				/* rbp is the unique words count */
+	pushq %r12			/* save r12 */	
+	pushq %r13			/* save r13 */		
+	pushq %r14			/* save r14 */	
+	pushq %r15			/* save r15 */	
+	pushq %rbx			/* save rbx */	
+	pushq %rbp			/* save rbp */	
 
-// READ FILE INPUT 
-	cmpq $2, %rdi				/* check if argc has 2 args */
+	movq %rdi, %r12		/* r12 is argc */
+	movq %rsi, %r13		/* r13 is argv */
+
+// ERROR HANDLING FOR FILE INPUT
+	cmpq $2, %r12				/* check if argc has 2 args */
 	je .L_openFileNormal		/* if two arguments, use file pointer */
 
-	cmpq $1, %rdi				/* check if argc has 1 arg */
+	cmpq $1, %r12				/* check if argc has 1 arg */
 	je .L_openFileStdin			/* if one argument, use standard input */
 	
 								/* if neither, its wrong */		
-	movq $2, %rdi				/* set output stream to stderr */
+	movq stderr, %rdi			/* set output stream to stderr */
 	movq $argvError, %rsi		/* load the error message */
 	call fprintf				/* print error message */
 	movq $1, %rax				/* return w errcode 1 */
-	jmp .L_end					/* end function */
+	jmp .L_end					/* exit */
 
-// OPEN FILE INPUT
+// OPEN FILE INPUT (argc == 2)
 .L_openFileNormal:
-	mov 8(%rsi), %rdi				/* argv[1] to %rdi */
+	leaq 8(%r13), %r10				/* load position of first arg (file name) into r10 */
+	movq (%r10), %rdi				/* argv[1] to %rdi */
 	movq $fileRead, %rsi			/* store "r" in rsi */
 	call fopen						/* open file */
-	movq %rax, %r14					/* store file pointer */
+
+	movq %rax, %r14					/* store file pointer in r14 */	
 	cmpq $0, %r14					/* if null, error code */
-	jne .L_correctOpen
-	jmp .L_errorFile			
+	jne .L_loadTable				/* continue if correctly opened */
 
-// OPEN STANDARD INPUT
+	movq stderr, %rdi				/* print in stderr */
+	movq $fileOpenError, %rsi		/* error message for file not opened */
+	call fprintf					/* print error msg */
+	movq $1, %rax					/* return w code 1 */
+	jmp .L_end						/* exit */
+
+// OPEN STANDARD INPUT (argc == 1)
 .L_openFileStdin:
-	movq stdin, %rdi				/* load stdin to %rdi */
-	movq $fileRead, %rsi			/* store "r" in rsi */
-	call fopen						/* open file */
-	movq %rax, %r14					/* store file pointer */
-	cmpq $0, %r14
-	jne .L_openFileNormal
-	jmp .L_errorFile				/* if null, handle as an error file */
+	movq stdin, %r14				/* load stdin as file pointer in r14 */
 
-// if not opened file properly
-.L_errorFile:
-	movq $2, %rdi				
-	movq $fileOpenError, %rsi	/* error message */
-	call fprintf
-	movq $1, %rax				/* return w code 1 */
-	jmp .L_end
+// HANDLE FILE READING INTO HASH TABLE
+.L_loadTable:
+	xorq %r12, %r12 				/* clear r12 to store WordEntry hash table */
+	xorq %r13, %r13					/* also clear r13 for the moving pointer */
+	xorq %r15, %r15					/* r15 is total word count */
 
-// if did open file properly 
-.L_correctOpen:
-	movq $1, %rdi						/* size of struct */
-	addq $MAX_WORDLEN, %rdi	
-	addq $4, %rdi						/* uint32 count */
-	addq $8, %rdi						/* pointer to next entry */
-	imulq $HASHTABLE_SIZE, %rdi			/* malloc memory for hashtable */
-	call malloc
-	movq %rax, %r15						/* pointer to hashtable to r15 */
-	movq $0, %r15 						/* clear hash# */
+	movq $HASHTABLE_SIZE, %r10		/* store size of hash table */
+	imulq $8, %r10					/* calculate overall size of table */
+	movq %r10, %rdi					/* move to first arg */
+	call malloc						/* allocate memory for the table */
+	movq %rax, %r12					/* move pointer to table to r12 */	
 
-	jmp .L_fillHash
+	//movq %rsp, %rbx					/* save current position of stack pointer to rbx */
+	//addq $64, %rsp 					/* reserve 64 bytes on stack for the word from readnext */
 
-// GET THE HASH FUNCTION
-.L_fillHash:
-	movq %rdi, %rdi						/* move file pointer for readnext */
-	call wc_readnext
-	cmpq $1, %rax						/* if 1, then next exists*/ 	
-	jne .L_readFile
+// LOOPING FOR ENTRIES INTO HASH TABLE
+.L_loadLoop: 
+	// read the next word from file
+	movq %r14, %rdi				/* move file pointer as first arg */
+	movq $0, (%rbx)				/* clear reserved space */
+	movq %rbx, %rsi				/* move reserved space to read */
+	call wc_readnext 			/* read next word */
+	cmpl $0, %eax 				/* check if something was read */
+	je .L_getStats				/* exit the loop once no more to be read */
 
-/*if read next exist, save curr word to hash table based on hash code and add to total word count*/
-/*unsure: how to search hash table for duplicates*/
+	incq %r15					/* increase the count of total words */
 
-.L_readFile:
-	cmpq $HASHTABLE_SIZE, %r15			/*rbx is pointer to hash, if less than continue, if not return*/
-	jge .L_printStat
-
-	incq %r15 
+	// lowercase and trim word
+	movq %rsi, %rdi				/* move word to first argument */
+	call wc_tolower 			/* lowercase the given word */
+	call wc_trim_non_alpha 		/* trim the given word */
 	
-	cmpq $0, (%r15)					/* if curr word is null*/
-	je .L_readFile						/*next word */
-	jne .L_stat_counter
+	// insert the word to the dictionary
+	movq %rdi, %rdx						/* move word to third arg */
+	movq $HASHTABLE_SIZE, %rsi			/* move the size of hashtable to second arg */
+	movq %r12, %rdi						/* move hashtable to first arg */
+	call wc_dict_find_or_insert			/* insert word to hashtable */
+	xorq %r10, %r10						/* clear space in temp register r10 to hold return WordEntry */
+	movq %rax, %r10 					/* move WordEntry to r10 */
+	incq WORDENTRY_COUNT_OFFSET(%r10)	/* increment the count of WordEntry */
 
-.L_stat_counter:
-	incq %r11												/*unique word count ++*/
-	cmpq %r13, WORDENTRY_COUNT_OFFSET(%r15)					/*compare best word count w curr count*/ 
-	jg .L_switchBestWord									/*if greater than, switch word */
-	je .L_checkWordLex										/* if its equal than, check word length; if less than move on */
-	jl .L_readFile	
+	jmp .L_loadLoop						/* go back and loop */
 
-.L_checkWordNull:
-	cmpq $0, (%r15)
-	je .L_readFile							/*if null, continue readFile*/
-	jne .L_checkWordLex
+// GET STATISTICS
+.L_getStats: 
 
-.L_checkWordLex:
-/**fix compare word lex*/
-	cmpq %r12, (%r15)						/* compare best word and curr word */
-	jge .L_switchBestWord					/* if greater than or equal, switch word */
-	jl .L_readFile							/* if less than, continue readFile*/
+	movq $0, %r11			/* r11 is count of the outer loop */
+	
 
-.L_switchBestWord:
-	movq (%r15), %r12														/* set curr word = best word */
-	movq WORDENTRY_COUNT_OFFSET(%r15), %r13									/* set curr count = best count */
-	jmp .L_readFile															/* continue to readFile*/
+//.L_statsOuterLoop:
 
-.L_printStat:
-	/* PRINT STAT */
-	call fprintf
-	jmp .L_end
+//.L_statsInnerLoop:
 
+	// iterate over the whole table
+	
+
+
+
+
+
+
+
+// print all the statistics
+
+
+.L_cleanup:
+
+	//subq $64, %rsp		/* reset space allocated for word read input */
+
+// FREE ALL ALLOCATED MEMORY WITH FREE CHAIN
+
+	movq %r12, %rdi		/* move hash table to first arg */
+	call free			/* free hash table itself */
+
+
+// MAKE SURE FILE IS CLOSED
+
+
+	xorq %rax, %rax 	/* return 0 (ran without error) */
+
+// CLEANUP VARIABLES AND RETURN
 .L_end:
 
-	popq %rbp
-	popq %rbx
-	popq %r15
-	popq %r14
-	popq %r13
-	popq %r12
-	addq $8, %rsp
+	popq %rbp			/* restore rbp */
+	popq %rbx			/* restore rbx */
+	popq %r15			/* restore r15 */
+	popq %r14			/* restore r14 */
+	popq %r13			/* restore r13 */
+	popq %r12			/* restore r12 */
+
+	addq $8, %rsp		/* restore stack */
+
 	ret
 
 /*
