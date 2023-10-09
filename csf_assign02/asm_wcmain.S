@@ -11,8 +11,10 @@
  */
 
 #define MAX_WORDLEN 63
-#define HASHTABLE_SIZE 13249
+#define HASHTABLE_SIZE 1000
+//#define HASHTABLE_SIZE 13249
 #define WORDENTRY_COUNT_OFFSET (MAX_WORDLEN+1)
+#define WORDENTRY_NEXT_OFFSET  (MAX_WORDLEN+1+4+4)
 
 	.section .rodata
 fileRead: .string "r"									/* read only string literal for fopen */
@@ -21,6 +23,8 @@ argvError: .string "Wrong number of arguments.\n"		/* error message string liter
 totalWord: .string "Total words read: %u\n"				/* print statement for total word count */
 uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
 bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats */
+
+debugString: .string "Outer: %u\n"
 
 	.section .text
 
@@ -81,13 +85,11 @@ main:
 	xorq %r15, %r15					/* r15 is total word count */
 
 	movq $HASHTABLE_SIZE, %r10		/* store size of hash table */
+	addq $10, %r10 					/* add for padding */
 	imulq $8, %r10					/* calculate overall size of table */
 	movq %r10, %rdi					/* move to first arg */
 	call malloc						/* allocate memory for the table */
 	movq %rax, %r12					/* move pointer to table to r12 */	
-
-	//movq %rsp, %rbx					/* save current position of stack pointer to rbx */
-	//addq $64, %rsp 					/* reserve 64 bytes on stack for the word from readnext */
 
 // LOOPING FOR ENTRIES INTO HASH TABLE
 .L_loadLoop: 
@@ -120,37 +122,107 @@ main:
 // GET STATISTICS
 .L_getStats: 
 
-	movq $0, %r11			/* r11 is count of the outer loop */
+	movq %r14, %rdi			/* move file pointer to first arg */
+	call fclose 			/* close the file */
+
+	movq $0, %rbx			/* rbx is count of the outer loop */
 	
-
-//.L_statsOuterLoop:
-
-//.L_statsInnerLoop:
-
-	// iterate over the whole table
+	xorq %r14, %r14 		/* initialize r14 (unique word count) */
+	xorq %r13, %r13			/* initialize r13 (unique top word) */
 	
+	movq %r12, %r13			/* set top word to first element in array, as a dummy */
 
+.L_statsOuterLoop:
 
+	cmpl $HASHTABLE_SIZE, %ebx	/* compare the count of outer loop with size of hash table */
+	jge .L_printStats			/* exit the whole set of loops once done iterating */
 
+	// DEBUG
+	movq $debugString, %rdi
+	movq %rbx, %rsi
+	call printf
 
+	leaq (%r12, %rbx, 8), %rbp	/* rbp is the pointer to current WordEntry */	
 
+.L_statsInnerLoop:
 
+	cmpq $0, %rbp				/* check whether current WordEntry pointer is null */
+	je .L_statsOuterAfter		/* jump to outer if so */
+	cmpq $0, (%rbp) 			/* check whether word itself is null */
+	je .L_statsOuterAfter		/* jump to the outer loop if so */
 
-// print all the statistics
+	incq %r14					/* increase the count of unique words */
 
+	movl WORDENTRY_COUNT_OFFSET(%rbp), %r10d 	/* r10 holds the current word count */
+	movl WORDENTRY_COUNT_OFFSET(%r13), %r11d 	/* r11 holds the best word count */
+	cmpl %r11d, %r10d						 	/* compare word counts */
+	jl .L_statsInnerAfter						/* iterate inner loop if the count is less than */
+	je .L_statsCheckStrings						/* if they were equal, get the string with higher alphabetic order */
+	jmp .L_betterWordFound						/* else, a better word was found */
 
-.L_cleanup:
+.L_statsCheckStrings:
 
-	//subq $64, %rsp		/* reset space allocated for word read input */
+	movq %rbp, %rdi				/* move current word to first arg */
+	movq %r13, %rsi				/* move best word to second arg */
+	call wc_str_compare 		/* compare the strings */
+	cmpq $0, %rax				/* compare output with 0 (equal) */
+	jge .L_statsInnerAfter 		/* if current word was not better than best word, continue looping */
+
+// WHEN BETTER WORD IS FOUND, GET THAT WORDENTRY
+.L_betterWordFound:
+
+	movq %rbp, %r13				/* move the current word to best word position */
+
+.L_statsInnerAfter:
+
+	movq WORDENTRY_NEXT_OFFSET(%rbp), %rbp	/* move current entry to next */
+	jmp .L_statsInnerLoop 					/* go back to the inner loop */
+
+.L_statsOuterAfter:
+
+	incq %rbx 					/* increment the outer loop count */
+	jmp .L_statsOuterLoop		/* jump to beginning of outer loop */
+
+// PRINT ALL THE STATISTICS
+.L_printStats:
+	// total words
+	movq $totalWord, %rdi					/* move total word string to first arg */
+	movq %r15, %rsi 						/* move count to second arg */
+	call printf								/* print to stdout */
+
+	// unique words
+	movq $uniqueWord, %rdi					/* move unique word string to first arg */
+	movq %r14, %rsi 						/* move count to second arg */
+	call printf								/* print to stdout */
+
+	// most frequent word
+	movq $bestWord, %rdi					/* move frequent word string to first arg */
+	movq (%r13), %rsi 						/* move word to second arg */
+	movq WORDENTRY_COUNT_OFFSET(%r13), %rdx /* move count to third arg */
+	call printf								/* print to stdout */
 
 // FREE ALL ALLOCATED MEMORY WITH FREE CHAIN
+.L_cleanup:
+
+	movq $0, %rbx 		/* rbx is count of loop */
+
+.L_freeLoop:
+
+	cmpl $HASHTABLE_SIZE, %ebx	/* compare the count of outer loop with size of hash table */
+	jge .L_freeAfter			/* exit the whole set of loops once done iterating */
+
+	leaq (%r12, %rbx, 8), %rbp	/* rbp is the pointer to current WordEntry */
+
+	movq %rbp, %rdi				/* move WordEntry to first arg */
+	call wc_free_chain 			/* free the chain of WordEntries */
+
+	incq %rbx					/* increment counter */
+	jmp .L_freeLoop				/* start loop again */
+
+.L_freeAfter:
 
 	movq %r12, %rdi		/* move hash table to first arg */
 	call free			/* free hash table itself */
-
-
-// MAKE SURE FILE IS CLOSED
-
 
 	xorq %rax, %rax 	/* return 0 (ran without error) */
 
