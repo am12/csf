@@ -23,6 +23,9 @@ totalWord: .string "Total words read: %u\n"				/* print statement for total word
 uniqueWord: .string "Unique words read %u\n"			/* print statement for unique word count */
 bestWord: .string "Most frequent word: %s (%u)\n" 		/* print statement for best word count & stats */
 
+debugString: .string "Outer: %s (%u)\n"
+debugString2: .string "Inner: %s\n"
+
 	.section .text
 
 	.globl main
@@ -79,6 +82,7 @@ main:
 	xorq %r15, %r15					/* r15 is total word count */
 
 	movq $HASHTABLE_SIZE, %r10		/* store size of hash table */
+	//addq $12, %r10 					/* add for padding */
 	movq %r10, %rdi					/* move to first arg */
 	movq $8, %rsi 					/* 8 bytes for a pointer */
 	call calloc						/* allocate memory for the table */
@@ -113,9 +117,7 @@ main:
 	incq %r11								/* increment the count */
 	movq %r11, WORDENTRY_COUNT_OFFSET(%r10)	/* return count to WordEntry */
 
-	movq %r10, %r13							/* set word to best word, as a dummy */
-
-	jmp .L_loadLoop							/* go back and loop */
+	jmp .L_loadLoop						/* go back and loop */
 
 // GET STATISTICS
 .L_getStats: 			
@@ -126,6 +128,9 @@ main:
 	movq $0, %rbx			/* rbx is count of the outer loop */
 	
 	xorq %r14, %r14 		/* initialize r14 (unique word count) */
+	xorq %r13, %r13			/* initialize r13 (unique top word) */
+	
+	movq %r12, %r13			/* set top word to first element in array, as a dummy */
 
 	pushq %r15				/* save the value of total words */
 	subq $8, %rsp			/* align stack */
@@ -137,11 +142,22 @@ main:
 
 	leaq (%r12, %rbx, 8), %r15	/* r15 is the pointer to current WordEntry */
 	movq (%r15), %r15			/* dereference the WordEntry to get the head */
+
+	//DEBUG	
+	movq $debugString, %rdi
+	movq %r15, %rsi	
+	movq %rbx, %rdx		
+	call printf
 	
 .L_statsInnerLoop:
 
 	testq %r15, %r15			/* check whether current WordEntry pointer is null */
 	je .L_statsOuterAfter		/* jump to outer if so */
+
+	//DEBUG
+	movq $debugString2, %rdi
+	movq %r15, %rsi
+	call printf
 
 	incq %r14					/* increase the count of unique words */
 
@@ -157,7 +173,7 @@ main:
 	movq %r15, %rdi				/* move current word to first arg */
 	movq %r13, %rsi				/* move best word to second arg */
 	call wc_str_compare 		/* compare the strings */
-	cmpl $0, %eax				/* compare output with 0 (equal) */
+	cmpq $0, %rax				/* compare output with 0 (equal) */
 	jge .L_statsInnerAfter 		/* if current word was not better than best word, continue looping */
 
 // WHEN BETTER WORD IS FOUND, GET THAT WORDENTRY
@@ -210,6 +226,9 @@ main:
 
 	leaq (%r12, %rbx, 8), %r15	/* r15 is the pointer to current WordEntry */
 	movq (%r15), %r15			/* get the head WordEntry by deferencing */
+
+	cmpq $0, %r15				/* compare with null */
+	je .L_freeAfter				/* continue if null */
 
 	movq %r15, %rdi				/* move WordEntry to first arg */
 	call wc_free_chain 			/* free the chain of WordEntries */

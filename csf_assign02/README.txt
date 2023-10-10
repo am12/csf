@@ -8,3 +8,5 @@ MS2:
 Alan and Lauren worked together for the majority of the writing and debugging of functions. 
 Alan took charge for the find or insert and readnext functions, while Lauren did the string manipulation functions.
 Both worked on main, styling, and testing. 
+
+**Note: for some reason, the main program is failing on Gradescope, but when we run locally, the outputs are correct and without a segfault.

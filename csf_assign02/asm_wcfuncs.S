@@ -147,8 +147,6 @@ wc_str_compare: 			/* rdi is lhs, rsi is rhs */
  */
 	.globl wc_str_copy
 wc_str_copy:
-	subq $8, %rsp			/* align stack */
-
 	pushq %r12				/* save value at r12 */
 	pushq %r13				/* save value at r13 */
 	pushq %r14				/* save value at r14 */
@@ -174,7 +172,6 @@ wc_str_copy:
 	popq %r14				/* restore r14 */
 	popq %r13				/* restore r13 */
 	popq %r12				/* restore r12 */
-	addq $8, %rsp			/* restore stack */	
 	ret
 
 /*
@@ -439,17 +436,16 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	subq $8, %rsp				/* align stack */
-
 	pushq %r12					/* save r12 */
 	pushq %r13					/* save r13 */
 	pushq %r14					/* save r14 */
+	pushq %r15					/* save r15 */
 	pushq %rbx					/* save rbx */
 
 	movq %rdi, %r12				/* r12 is head WordEntry */
 	movq %rsi, %r13 			/* r13 is the specified string */
 	movq %rdx, %r14      		/* r14 is the int representing inserted */
-
+	movq $0, %r15				/* r15 is the count of loops */
 	movq %r12, %rbx				/* rbx is the current WordEntry */
 
 .L_loop_search_match:
@@ -464,6 +460,7 @@ wc_find_or_insert:
 	je .L_found_match						/* if equal, found match */
 
 	movq WORDENTRY_NEXT_OFFSET(%rbx), %rbx 	/* move current to next */
+	incq %r15								/* increment number of loops */
 	jmp .L_loop_search_match 				/* loop back to top */
 	
 .L_found_match:
@@ -474,9 +471,10 @@ wc_find_or_insert:
 
 .L_not_found_match: 
 
-	movq $WORDENTRY_SIZE, %rdi 				/* pass size of WordEntry to malloc */
-	call malloc 							/* call malloc */
-	movq $0, (%rax) 						/* clear the values in the malloc'd area */
+	movq $WORDENTRY_SIZE, %rsi 				/* pass size of WordEntry to malloc */
+	movq $1, %rdi							/* make a single WordEntry */
+	call calloc 							/* call calloc */
+	
 	movq %rax, %rbx							/* move returned new WordEntry to rbx */
 	movq $0, WORDENTRY_COUNT_OFFSET(%rbx) 	/* initialize count to 0 */
 	movq %r12, WORDENTRY_NEXT_OFFSET(%rbx)	/* prepend the new WordEntry to head WordEntry */
@@ -491,11 +489,10 @@ wc_find_or_insert:
 .L_dict_find_cleanup:
 	
 	popq %rbx					/* restore rbx */
+	popq %r15					/* restore r15 */
 	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
     popq %r12					/* restore r12 */
-
-	addq $8, %rsp				/* restore stack */
     ret
 
 
@@ -513,8 +510,6 @@ wc_find_or_insert:
  */
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
-	
-	subq $8, %rsp				/* align stack */
 
 	pushq %r12					/* save r12 */
 	pushq %r13					/* save r13 */
@@ -557,8 +552,6 @@ wc_dict_find_or_insert:
 	popq %r14					/* restore r14 */
 	popq %r13					/* restore r13 */
     popq %r12					/* restore r12 */
-
-	addq $8, %rsp				/* restore stack */
     ret
 
 
@@ -570,8 +563,8 @@ wc_dict_find_or_insert:
  */
 	.globl wc_free_chain
 wc_free_chain:
-	subq $8, %rbx								/* align stack */
-	movq %rdi, %rbx								/* move pointer to head into r10 */
+	pushq %rbx									/* save rbx */
+	movq %rdi, %rbx								/* move pointer to head into rbx */
 
 .L_looptofree:
 	cmpq $0, %rbx								/* if curr is null, end of list */
@@ -583,7 +576,7 @@ wc_free_chain:
 	jmp .L_looptofree							/* move to next obj */
 
 .L_finishedfree:
-	addq $8, %rbx								/* restore stack */
+	popq %rbx									/* restore rbx */
 	ret
 
 /*
