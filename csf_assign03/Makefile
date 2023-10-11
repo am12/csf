@@ -1,8 +1,11 @@
-CC=gcc
-CFLAGS=-Wall -Wextra --pedantic
+CC= gcc
+CFLAGS= -Wall -Wextra --pedantic
+
+
+all: csim
 
 csim: main.o util.o
-	$(CC) main.o util.o -o csim
+	$(CC) -o csim main.o util.o
 
 main.o: main.cpp util.h
 	$(CC) $(CFLAGS) -c main.cpp
