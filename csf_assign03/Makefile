@@ -1,6 +1,5 @@
-CC= gcc
+CC= g++
 CFLAGS= -Wall -Wextra --pedantic
-
 
 all: csim
 

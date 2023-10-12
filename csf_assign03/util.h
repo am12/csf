@@ -23,3 +23,7 @@ struct Cache {
 
 
 #endif //UTIL_H
+
+int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv);
+
+bool pow2_check(int check);

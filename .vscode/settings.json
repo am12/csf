@@ -13,6 +13,7 @@
         "format": "c",
         "initializer_list": "c",
         "span": "c",
-        "charconv": "c"
+        "charconv": "c",
+        "iostream": "cpp"
     }
 }
