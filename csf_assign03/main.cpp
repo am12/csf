@@ -24,7 +24,7 @@ char pcycles[] = "Total cycles: %d\n";
 
 int main(int argc, char **argv) {
     if (argc != 7) {
-        cerr << ("Error: wrong number of arguments");
+        cerr << ("Error: wrong number of arguments") << endl;
         return 1;
     }
     int sets, blocks, bytes;
@@ -34,13 +34,21 @@ int main(int argc, char **argv) {
         err_args = store_args(sets, blocks, bytes, write_a, write_b, lru, argv);
     }
     catch (...) {
-        cerr << ("Error: Invalid arguments");
+        cerr << ("Error: Invalid arguments") << endl;
         return 2;
     }
     if (err_args == 1) {
-        cerr << ("Error: Invalid arguments");
+        cerr << ("Error: Invalid arguments") << endl;
         return 2;
     }
+
+    //write_a false -> no write 
+    //write_b false -> write back
+    //lru false -> fifo
+
+    //n sets of 1 block each: direct mapped 
+    //n sets of m blocks each: m-way set-associative
+    //1 set of n blocks: fully associative 
 
 
     return 0;
