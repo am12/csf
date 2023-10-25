@@ -4,4 +4,5 @@ Lauren and Alan worked together on MS1 to draft and plan out the design of the c
 Lauren worked on the Makefile while Alan worked on framework of main.cpp
 
 MS2:
+
 MS3:
