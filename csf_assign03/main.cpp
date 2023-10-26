@@ -14,16 +14,21 @@ using std::endl;
 using std::pair;
 using std::string;
 
+// helper function declarations
+void print_output(int store_hits, int store_misses, int load_hits, int load_misses, int total_cycles);
+void print_cache();
+
 int main(int argc, char **argv) {
+    // example input: ./csim 256 4 16 write-allocate write-back lru < sometracefile
+
     if (argc != 7) {
         cerr << ("Error: wrong number of arguments") << endl;
         return 1;
     }
     int sets, blocks, bytes;
-    bool write_a, write_b, lru;
-    int err_args = 0;
+    bool write_alloc, write_back, lru;
     try {
-        err_args = store_args(sets, blocks, bytes, write_a, write_b, lru, argv);
+        int err_args = store_args(sets, blocks, bytes, write_alloc, write_back, lru, argv);
     }
     catch (...) {
         cerr << ("Error: Invalid arguments") << endl;
@@ -35,6 +40,8 @@ int main(int argc, char **argv) {
     }
 
     //write_a false -> no write 
+
+
     //write_b false -> write back
     //lru false -> fifo
 
@@ -42,9 +49,11 @@ int main(int argc, char **argv) {
     //n sets of m blocks each: m-way set-associative
     //1 set of n blocks: fully associative 
 
+    // finally, print the summary statistics
     
+    print_output();
 
-    return 0;
+    return 0; // return successfully
 }
 
 /**
@@ -67,4 +76,14 @@ void print_output(int store_hits, int store_misses, int load_hits, int load_miss
     cout << "Store hits: " << store_hits << endl;
     cout << "Store misses: " << store_misses << endl;
     cout << "Total cycles: " << total_cycles << endl;
+}
+
+/** 
+ * Prints the current state of the cache.
+ * 
+ * 
+ * 
+*/
+void print_cache() {
+    
 }

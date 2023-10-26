@@ -37,7 +37,7 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
     lru = (strcmp(argv[6], "lru"));
 
     //check invalid paramters
-    if ((blocks < 4) || (!pow2_check(blocks)) || (!pow2_check(sets))) {
+    if ((blocks < 4) || (!is_power_2(blocks)) || (!is_power_2(sets))) {
         return 1;
     }
     //if write_a false + write_b true: error
@@ -51,40 +51,32 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
  * Checks if a decimal number is a power of 2
  * 
  * Parameters:
- * check: decimal number
+ * n (int) - given decimal number
  * 
  * Returns:
- * is true or false that the number is a power of 2
+ * true if number is a power of 2, else false
 */
-bool pow2_check(int check) {
-    if (check > 0) {
-    // continously divide i if it is even
-    while (check % 2 == 0) {
-      check = check / 2;
+bool is_power_2(int n) {
+    if (n <= 0) {  
+        return false;
     }
-    // check if n is a power of 2
-    if (check == 1) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+    return (n & (n - 1)) == 0;
 }
 
 /**
  * Converts a decimal number to binary
  *
  * Parameters:
- * n - decimal number
+ * n (int) - decimal number
  *
  * Returns:
  *   number in binary
  *   -1 if n is not a power of 2
  */
-int logb2(int n) {
+int dec_to_bin(int n) {
   int count = 0;
   while (n > 1) {
-      if (!pow2_check(n)) {
+      if (!is_power_2(n)) {
           return -1;
       }
       n /= 2;
@@ -102,7 +94,7 @@ int logb2(int n) {
  * Returns:
  *   address as an unsigned int
  */
-unsigned int hex2int(string adr) {
+unsigned int hex_to_int(string adr) {
     std::stringstream ss;
     ss << adr.substr(2, 8);
     unsigned int out;
@@ -152,7 +144,7 @@ int process_line(string line, Cache &cache, bool write_a, bool write_t, bool lru
     unsigned int addr_i;
     try {
         string address = line.substr(2, 10);
-        addr_i = hex2int(address);
+        addr_i = hex_to_int(address);
     } catch (...) {
         cerr << "Error: invalid address" << endl;
         return -1;
@@ -215,7 +207,7 @@ int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool
           cache.sets[index].slots[block_index].valid = -1;
       }
       if (lru) {
-          //TODO:rotate back
+          //TODO: rotate back
       }
       return 1;
   }
