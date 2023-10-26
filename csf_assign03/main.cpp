@@ -14,14 +14,6 @@ using std::endl;
 using std::pair;
 using std::string;
 
-char pload[] = "Total loads: %d\n";
-char pstores[] = "Total stores: %d\n";
-char phits[] = "Load hits: %d\n";
-char pmisses[] = "Load misses: %d\n";
-char pshits[] = "Store hits: %d\n";
-char psmisses[] = "Store misses: %d\n";
-char pcycles[] = "Total cycles: %d\n";
-
 int main(int argc, char **argv) {
     if (argc != 7) {
         cerr << ("Error: wrong number of arguments") << endl;
@@ -50,6 +42,29 @@ int main(int argc, char **argv) {
     //n sets of m blocks each: m-way set-associative
     //1 set of n blocks: fully associative 
 
+    
 
     return 0;
+}
+
+/**
+ * Prints final counts
+ * 
+ * Parameters:
+ * store_hits: # of time it hits when storing
+ * store_misses: # of times it misses when storing
+ * load_hits: # of times it hits when loading
+ * load_misses: # of times it misses when loading 
+ * total_cycles: total # of cycles
+ * 
+ * 
+*/
+void print_output(int store_hits, int store_misses, int load_hits, int load_misses, int total_cycles) {
+    cout << "Total loads: " << load_hits + load_misses << endl;
+    cout << "Total stores: " << store_hits + store_misses << endl;
+    cout << "Load hits: " << load_hits << endl;
+    cout << "Load misses: " << load_misses << endl;
+    cout << "Store hits: " << store_hits << endl;
+    cout << "Store misses: " << store_misses << endl;
+    cout << "Total cycles: " << total_cycles << endl;
 }

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "util.h"
+#include <sstream>
 #include <iostream>
 
 using std::vector;
@@ -13,7 +14,8 @@ using std::endl;
 using std::pair;
 using std::string;
 using std::stoi;
-
+using std::hex;
+using std::stringstream;
 
 /** 
  * Store arguments into variables
@@ -91,6 +93,23 @@ int logb2(int n) {
   return count;
 }
 
+/*
+ * Converts a 32-bit hex address to unsigned int.
+ *
+ * Parameters:
+ *   addr - address in 0xffffffff format
+ *
+ * Returns:
+ *   address as an unsigned int
+ */
+unsigned int hex2int(string adr) {
+    std::stringstream ss;
+    ss << adr.substr(2, 8);
+    unsigned int out;
+    ss >> std::hex >> out;
+    return out;
+}
+
 /**
  * Creates index mask 
  * 
@@ -108,3 +127,148 @@ unsigned int index_mask(int n) {
     }
     return mask;
 }
+
+/*
+ * Processes one line of input (contains store/load, address).
+ *
+ * Parameters:
+ *   line - the line to be processed in string form
+ *   cache - reference to the cache
+ *   write_a - 1 if write-allocate, 0 if no-write-allocate
+ *   write_t - 1 if write-through, 0 if write-back
+ *   lru - 1 if lru, 0 if fifo
+ *   index_length - length of the index in the address 
+ *   offset_length - length of the offset in the address
+ *   bytes - number of bytes per block
+ *   total_cycles - reference to the number of cycles
+ *
+ * Returns:
+ *   1 on hit
+ *   0 on miss
+ *   -1 on error
+ */
+int process_line(string line, Cache &cache, bool write_a, bool write_t, bool lru, int index_length, int offset_length, int bytes, int &total_cycles) {
+    char store_load = line[0]; // store or load
+    unsigned int addr_i;
+    try {
+        string address = line.substr(2, 10);
+        addr_i = hex2int(address);
+    } catch (...) {
+        cerr << "Error: invalid address" << endl;
+        return -1;
+    }
+    
+    // accounts for offset
+    unsigned int index = (addr_i >> offset_length) & index_mask(index_length);
+    unsigned int tag = addr_i >> (offset_length + index_length);
+    
+    if (store_load == 's') {
+        //store
+    } else if (store_load == 'l') {
+        //load
+    } else {
+        cerr << "Error: not a store or load instruction" << endl;
+        return -1;
+    }
+    return -1;
+}
+
+/*
+ * Finds the index of a block tag in a set.
+ *
+ * Parameters:
+ *   tag - the tag of the block to be found
+ *   set - the set of blocks
+ *
+ * Returns:
+ *   index of block on hit
+ *   -1 on miss
+ */
+int find_block(unsigned int tag, Set set) {
+    for (int i = 0; i < (int) set.slots.size(); ++i) {
+        if (tag == set.slots[i].tag && set.slots[i].tag != 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * 
+*/
+
+
+/**
+ * 
+*/
+int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_t, bool lru, int bytes, int &total_cycles) {
+  int block_index = find_block(tag, cache.sets[index]);
+  int words = bytes/4;
+  if (block_index != -1) {
+      // hit
+      if (write_t) {
+          // writes to cache and memory
+          total_cycles += 100;
+      } else {
+          // write only to cache, mark dirty
+          total_cycles += 1;
+          cache.sets[index].slots[block_index].valid = -1;
+      }
+      if (lru) {
+          //TODO:rotate back
+      }
+      return 1;
+  }
+  // miss
+  if (write_a) {
+      // write from memory to cache
+      total_cycles += 100 * words;
+
+      // write to cache
+      //TODO: rotatebackS w index -1
+      cache.sets[index].slots[0].tag = tag;
+      cache.sets[index].slots[0].valid = 1;
+      if (write_t) {
+          // write to cache and memory
+          total_cycles += 100;
+      } else {
+          // write to cache
+          total_cycles += 1;
+    } 
+  } else {
+      if (write_t) {
+          // write to memory
+          total_cycles += 100;
+      }
+  }
+  return 0;
+}
+
+/**
+ * 
+*/
+int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes, int &total_cycles) {
+  int block_index = find_block(tag, cache.sets[index]);
+  int words = bytes / 4;
+  if (block_index != -1) {
+      // load hit
+      total_cycles += 1;
+      if (lru) {
+          //TODO:rotate back
+      }
+      return 1;
+  }
+  // load miss
+  total_cycles += 100 * words;
+  //TODO:rotate back with -1 index
+  //if dirty
+  if (cache.sets[index].slots[0].valid == -1) {
+      total_cycles += 100 * words;
+  }
+  cache.sets[index].slots[0].tag = tag;
+  cache.sets[index].slots[0].valid = 1;
+  total_cycles += 1;
+  return 0;
+}
+
+
