@@ -21,14 +21,18 @@ void print_cache();
 int main(int argc, char **argv) {
     // example input: ./csim 256 4 16 write-allocate write-back lru < sometracefile
 
+    // error handling
     if (argc != 7) {
-        cerr << ("Error: wrong number of arguments") << endl;
+        cerr << ("Error: Wrong number of arguments") << endl;
         return 1;
     }
+
     int sets, blocks, bytes;
     bool write_alloc, write_back, lru;
+    int err_args = 0;
+
     try {
-        int err_args = store_args(sets, blocks, bytes, write_alloc, write_back, lru, argv);
+        err_args = store_args(sets, blocks, bytes, write_alloc, write_back, lru, argv);
     }
     catch (...) {
         cerr << ("Error: Invalid arguments") << endl;
@@ -51,7 +55,7 @@ int main(int argc, char **argv) {
 
     // finally, print the summary statistics
     
-    print_output();
+    //print_output();
 
     return 0; // return successfully
 }

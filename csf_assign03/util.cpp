@@ -17,6 +17,7 @@ using std::stoi;
 using std::hex;
 using std::stringstream;
 
+
 /** 
  * Store arguments into variables
  * 
