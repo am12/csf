@@ -15,6 +15,8 @@ using std::pair;
 using std::string;
 using std::stoi;
 using std::hex;
+using std::stoul;
+using std::exception;
 using std::stringstream;
 
 
@@ -23,12 +25,12 @@ using std::stringstream;
  * 
  * Parameters:
  * 
- * 
  * Return:
  * 1 for error with arguments
  * 0 for no errors
 */
 int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv) {
+
     //storing into vars
     sets = stoi(argv[1]);
     blocks = stoi(argv[2]);
@@ -38,14 +40,16 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
     lru = (strcmp(argv[6], "lru"));
 
     //check invalid paramters
-    if ((blocks < 4) || (!is_power_2(blocks)) || (!is_power_2(sets))) {
-        return 1;
+    if ((bytes < 4) || (!is_power_2(blocks)) || (!is_power_2(sets)) || (!is_power_2(bytes))) {
+        return 1; // error
     }
-    //if write_a false + write_b true: error
+
+    // can't be write-back with no-write-allocate
     if ((write_b) && !(write_a)) {
-        return 1;
+        return 1; // error
     }
-    return 0;
+
+    return 0; // args are fine
 }
 
 /**
@@ -63,6 +67,31 @@ bool is_power_2(int n) {
     }
     return (n & (n - 1)) == 0;
 }
+
+
+/**
+ * Gets the log base 2 of a number, corresponding to length of a binary string;
+ * 
+ * Parameters:
+ * 
+ * Returns:
+ * the log base 2 of n
+ * -1 if not a valid number
+ * 
+*/
+int log2(int n) {
+    if (!is_power_2(n)) {
+        return -1;
+    }
+
+    int count = 0;
+    while (n > 1) {
+        n /= 2;
+        count++;
+    }
+    return count;
+}
+
 
 /**
  * Converts a decimal number to binary
@@ -94,13 +123,16 @@ int dec_to_bin(int n) {
  *
  * Returns:
  *   address as an unsigned int
+ *   -1 if invalid address
  */
-unsigned int hex_to_int(string adr) {
-    std::stringstream ss;
-    ss << adr.substr(2, 8);
-    unsigned int out;
-    ss >> std::hex >> out;
-    return out;
+unsigned hex_to_int(string addr) {
+    unsigned int result = -1;
+    try {
+        result = stoul(addr, nullptr, 16);
+    } catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+    }
+    return result;
 }
 
 /**
@@ -112,7 +144,7 @@ unsigned int hex_to_int(string adr) {
  * Returns:
  * index
 */
-unsigned int index_mask(int n) {
+unsigned index_mask(int n) {
     unsigned int mask = 0;
     for (int i = 0; i < n; ++i) {
         mask *= 2;
@@ -128,21 +160,21 @@ unsigned int index_mask(int n) {
  *   line - the line to be processed in string form
  *   cache - reference to the cache
  *   write_a - 1 if write-allocate, 0 if no-write-allocate
- *   write_t - 1 if write-through, 0 if write-back
+ *   write_b - 1 if write-back, 0 if write-through
  *   lru - 1 if lru, 0 if fifo
  *   index_length - length of the index in the address 
  *   offset_length - length of the offset in the address
  *   bytes - number of bytes per block
- *   total_cycles - reference to the number of cycles
+ *   cycles - reference to the number of cycles
  *
  * Returns:
  *   1 on hit
  *   0 on miss
  *   -1 on error
  */
-int process_line(string line, Cache &cache, bool write_a, bool write_t, bool lru, int index_length, int offset_length, int bytes, int &total_cycles) {
+int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_length, int offset_length, int bytes, int &cycles) {
     char store_load = line[0]; // store or load
-    unsigned int addr_i;
+    unsigned addr_i;
     try {
         string address = line.substr(2, 10);
         addr_i = hex_to_int(address);
@@ -152,13 +184,13 @@ int process_line(string line, Cache &cache, bool write_a, bool write_t, bool lru
     }
     
     // accounts for offset
-    unsigned int index = (addr_i >> offset_length) & index_mask(index_length);
-    unsigned int tag = addr_i >> (offset_length + index_length);
+    unsigned index = (addr_i >> offset_length) & index_mask(index_length);
+    unsigned tag = addr_i >> (offset_length + index_length);
     
     if (store_load == 's') {
-        //store
+        //store -> check if hit or miss
     } else if (store_load == 'l') {
-        //load
+        //load -> check if hit or miss
     } else {
         cerr << "Error: not a store or load instruction" << endl;
         return -1;
@@ -194,74 +226,77 @@ int find_block(unsigned int tag, Set set) {
 /**
  * 
 */
-int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_t, bool lru, int bytes, int &total_cycles) {
-  int block_index = find_block(tag, cache.sets[index]);
-  int words = bytes/4;
-  if (block_index != -1) {
-      // hit
-      if (write_t) {
-          // writes to cache and memory
-          total_cycles += 100;
-      } else {
-          // write only to cache, mark dirty
-          total_cycles += 1;
-          cache.sets[index].slots[block_index].valid = -1;
-      }
-      if (lru) {
-          //TODO: rotate back
-      }
-      return 1;
-  }
-  // miss
-  if (write_a) {
-      // write from memory to cache
-      total_cycles += 100 * words;
+int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
+    int block_index = find_block(tag, cache.sets[index]);
+    int words = bytes/4;
+    if (block_index != -1) { // hit
+        if (write_b) {
+            // write only to cache, mark dirty
+            cycles += 1;
+            cache.sets[index].slots[block_index].valid = -1;
+        } else {
+            // writes to cache and memory
+            cycles += 100;
+        }
+        if (lru) {
+            //TODO: rotate back 
 
-      // write to cache
-      //TODO: rotatebackS w index -1
-      cache.sets[index].slots[0].tag = tag;
-      cache.sets[index].slots[0].valid = 1;
-      if (write_t) {
-          // write to cache and memory
-          total_cycles += 100;
-      } else {
-          // write to cache
-          total_cycles += 1;
-    } 
-  } else {
-      if (write_t) {
-          // write to memory
-          total_cycles += 100;
-      }
-  }
-  return 0;
+        }
+        return 1;
+    }
+    // miss
+    if (write_a) {
+        // write from memory to cache
+        cycles += 100 * words;
+
+        // write to cache
+
+        //TODO: rotatebackS w index -1
+
+        cache.sets[index].slots[0].tag = tag;
+        cache.sets[index].slots[0].valid = 1;
+        if (write_b) {
+            // write to cache
+            cycles += 1;
+        } else {
+            // write to cache and memory
+            cycles += 100; 
+        } 
+    } else {
+        if (!write_b) {
+            // write to memory
+            cycles += 100;
+        }       
+    }
+    return 0;
 }
 
 /**
  * 
+ * 
 */
-int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes, int &total_cycles) {
-  int block_index = find_block(tag, cache.sets[index]);
-  int words = bytes / 4;
-  if (block_index != -1) {
-      // load hit
-      total_cycles += 1;
-      if (lru) {
-          //TODO:rotate back
-      }
-      return 1;
-  }
-  // load miss
-  total_cycles += 100 * words;
-  //TODO:rotate back with -1 index
-  //if dirty
-  if (cache.sets[index].slots[0].valid == -1) {
-      total_cycles += 100 * words;
-  }
-  cache.sets[index].slots[0].tag = tag;
-  cache.sets[index].slots[0].valid = 1;
-  total_cycles += 1;
-  return 0;
+int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes, int &cycles) {
+    int block_index = find_block(tag, cache.sets[index]);
+    int words = bytes / 4;
+    if (block_index != -1) {
+        // load hit
+        cycles += 1;
+        if (lru) {
+            //TODO:rotate back
+        }
+        return 1;
+    }
+    // load miss
+    cycles += 100 * words;
+    //TODO:rotate back with -1 index
+    //if dirty
+    if (cache.sets[index].slots[0].valid == -1) {
+        cycles += 100 * words;
+    }
+    cache.sets[index].slots[0].tag = tag;
+    cache.sets[index].slots[0].valid = 1;
+    cycles += 1;
+    return 0;
 }
 
 
