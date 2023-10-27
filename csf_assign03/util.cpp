@@ -35,9 +35,9 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
     sets = stoi(argv[1]);
     blocks = stoi(argv[2]);
     bytes = stoi(argv[3]);
-    write_a = (strcmp(argv[4], "write-allocate"));
-    write_b = (strcmp(argv[5], "write-back"));
-    lru = (strcmp(argv[6], "lru"));
+    write_a = (strcmp(argv[4], "write-allocate") == 0);
+    write_b = (strcmp(argv[5], "write-back") == 0);
+    lru = (strcmp(argv[6], "lru") == 0);
 
     //check invalid paramters
     if ((bytes < 4) || (!is_power_2(blocks)) || (!is_power_2(sets)) || (!is_power_2(bytes))) {
@@ -290,7 +290,7 @@ int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes
     cycles += 100 * words;
     //TODO:rotate back with -1 index
     //if dirty
-    if (cache.sets[index].slots[0].valid == -1) {
+    if (!cache.sets[index].slots[0].valid) {
         cycles += 100 * words;
     }
     cache.sets[index].slots[0].tag = tag;

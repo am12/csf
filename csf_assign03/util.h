@@ -9,8 +9,9 @@
 
 struct Slot {
 	uint32_t tag;
-	int mem;
-	bool valid, dirty; // true when written to; true when dirty bit
+	bool valid; // true when written to;
+	bool dirty; // true when dirty bit
+	int mem; 
 	uint32_t load_ts, access_ts;
 
 	// constructor
@@ -25,7 +26,7 @@ struct Set {
 	Set(uint32_t set_size_, uint32_t block_size_) {
 		set_size = set_size_;
 		block_size = block_size_;
-		for (int i = 0; i < set_size; i++) {
+		for (uint32_t i = 0; i < set_size; i++) {
     		slots.emplace_back(false, false, 0);
 		}
 	}
@@ -38,7 +39,7 @@ struct Cache {
 	// constructor
 	Cache(uint32_t cache_size_, uint32_t set_size, uint32_t block_size) {
 		cache_size = cache_size_;
-		for (int i = 0; i < cache_size; i++) {
+		for (uint32_t i = 0; i < cache_size; i++) {
     		sets.emplace_back(set_size, block_size);
 		}
 	}
@@ -60,13 +61,13 @@ int log2(int n);
 
 int dec_to_bin(int n);
 
-unsigned hex_to_int(string addr);
+unsigned hex_to_int(std::string addr);
 
 unsigned index_mask(int n);
 
 int find_block(unsigned int tag, Set set);
 
-int process_line(string line, Cache &cache, bool write_a, bool write_t, bool lru, int index_length, int offset_length, int bytes, int &total_cycles);
+int process_line(std::string line, Cache &cache, bool write_a, bool write_t, bool lru, int index_length, int offset_length, int bytes, int &total_cycles);
 
 int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles);
 

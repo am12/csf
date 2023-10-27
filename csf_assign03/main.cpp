@@ -15,7 +15,7 @@ using std::pair;
 using std::string;
 
 // helper function declarations
-void print_summary(int store_hits, int store_misses, int load_hits, int load_misses, int total_cycles);
+void print_summary(Summary &s);
 void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru);
 
 int main(int argc, char **argv) {
@@ -48,19 +48,19 @@ int main(int argc, char **argv) {
 
     // generate index, blocks, offset lengths
     int index_l = log2(sets), block_l = log2(blocks), offset_l = log2(bytes);
-
     if (index_l < 0 || block_l < 0 || offset_l < 2) {
         cerr << "Error: Cache params not valid" << endl;
         return 3;
     }
 
-    /////////
+    // main parsing file and executing cache logic
     Cache cache(sets, blocks, bytes);
     Summary summary;
     string command;
     while (getline(cin, command)) {
         int write_status = process_line(command, cache, write_alloc, write_back, lru, index_l, offset_l, bytes, summary.cycles);
         if (write_status < 0) {
+            cerr << "Error: Bad write status" << endl;
             return 4;
         } else if (command[0] == 's' && write_status) {
             summary.s_hits++;
@@ -75,21 +75,17 @@ int main(int argc, char **argv) {
             return 5;
         }
     }
-    
-    print_summary(summary);
 
+    // print statistics
+    print_summary(summary);
 
     //write_a false -> no write
     //write_b false -> write back
     //lru false -> fifo
-    
+
     //n sets of 1 block each: direct mapped 
     //n sets of m blocks each: m-way set-associative
     //1 set of n blocks: fully associative 
-
-    // finally, print the summary statistics
-    
-    //print_summary();
 
     return 0; // return successfully
 }
