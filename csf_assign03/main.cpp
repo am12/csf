@@ -16,6 +16,7 @@ using std::string;
 
 // helper function declarations
 void print_summary(Summary &s);
+void print_state(Cache &cache);
 void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru);
 
 int main(int argc, char **argv) {
@@ -44,7 +45,7 @@ int main(int argc, char **argv) {
     }
 
     // DEBUG
-    print_cache(sets, blocks, bytes, write_alloc, write_back, lru);
+    //print_cache(sets, blocks, bytes, write_alloc, write_back, lru);
 
     // generate index, blocks, offset lengths
     int index_l = log2(sets), block_l = log2(blocks), offset_l = log2(bytes);
@@ -58,23 +59,26 @@ int main(int argc, char **argv) {
     Summary summary;
     string command;
     while (getline(cin, command)) {
+        char c = command[0];
         int write_status = process_line(command, cache, write_alloc, write_back, lru, index_l, offset_l, bytes, summary.cycles);
         if (write_status < 0) {
             cerr << "Error: Bad write status" << endl;
             return 4;
-        } else if (command[0] == 's' && write_status) {
+        } else if (c == 's' && write_status) {
             summary.s_hits++;
-        } else if (command[0] == 's' && !write_status) {
+        } else if (c == 's' && !write_status) {
             summary.s_misses++;
-        } else if (command[0] == 'l' && write_status) {
+        } else if (c == 'l' && write_status) {
             summary.l_hits++;
-        } else if (command[0] == 'l' && !write_status) {
+        } else if (c == 'l' && !write_status) {
             summary.l_misses++;
         } else {
             cerr << "Error: Invalid command given" << endl;
             return 5;
         }
     }
+
+    //print_state(cache);
 
     // print statistics
     print_summary(summary);
@@ -124,4 +128,14 @@ void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bo
     cout << "Upon miss: " << (write_a ? "write-allocate" : "no-write-allocate") << endl;
     cout << "Upon hit: " << (write_b ? "write-back" : "write-through") << endl;
     cout << "Upon eviction: " << (lru ? "lru" : "fifo") << endl;
+}
+
+void print_state(Cache &cache) {
+    for (int i=0; i < (int)cache.sets.size(); i++) {
+        cout << "Cache set index " << i << " contains the following slots:" << endl;
+        for (int j=0; j<(int)cache.sets[i].slots.size();j++) {
+            cout << j << " tag: " << cache.sets[i].slots[j].tag << ", state: " << cache.sets[i].slots[j].state << ", access_ts:" << cache.sets[i].slots[j].access_ts << endl;
+        }
+    }
+    cout << endl;
 }

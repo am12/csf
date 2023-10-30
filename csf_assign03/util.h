@@ -9,13 +9,11 @@
 
 struct Slot {
 	uint32_t tag;
-	bool valid; // true when written to;
-	bool dirty; // true when dirty bit
-	int mem; 
+	int64_t state; // valid = 0, dirty = 1, default = -1
 	uint32_t load_ts, access_ts;
 
 	// constructor
-	Slot(bool valid, bool dirty, int mem) : valid(valid), dirty(dirty), mem(mem), load_ts(0), access_ts(0) {}
+	Slot(uint32_t tag, int state) : tag(tag), state(state), load_ts(0), access_ts(0) {}
 };
 
 struct Set {
@@ -27,7 +25,7 @@ struct Set {
 		set_size = set_size_;
 		block_size = block_size_;
 		for (uint32_t i = 0; i < set_size; i++) {
-    		slots.emplace_back(false, false, 0);
+    		slots.emplace_back(0, -1);
 		}
 	}
 };
@@ -35,10 +33,12 @@ struct Set {
 struct Cache {
 	uint32_t cache_size; // # sets/cache
 	std::vector<Set> sets;
+	int total_ts;
 
 	// constructor
 	Cache(uint32_t cache_size_, uint32_t set_size, uint32_t block_size) {
 		cache_size = cache_size_;
+		total_ts = 0;
 		for (uint32_t i = 0; i < cache_size; i++) {
     		sets.emplace_back(set_size, block_size);
 		}
@@ -65,12 +65,12 @@ unsigned hex_to_int(std::string addr);
 
 unsigned index_mask(int n);
 
-int find_block(unsigned int tag, Set set);
+int get_index(unsigned tag, Set set);
 
 int process_line(std::string line, Cache &cache, bool write_a, bool write_t, bool lru, int index_length, int offset_length, int bytes, int &total_cycles);
 
-int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles);
+int store(unsigned index, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles);
 
-int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes, int &cycles);
+int load(unsigned index, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles);
 
 #endif //UTIL_H

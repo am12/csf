@@ -19,7 +19,6 @@ using std::stoul;
 using std::exception;
 using std::stringstream;
 
-
 /** 
  * Store arguments into variables
  * 
@@ -126,7 +125,7 @@ int dec_to_bin(int n) {
  *   -1 if invalid address
  */
 unsigned hex_to_int(string addr) {
-    unsigned int result = -1;
+    unsigned result = -1;
     try {
         result = stoul(addr, nullptr, 16);
     } catch (const exception& e) {
@@ -145,7 +144,7 @@ unsigned hex_to_int(string addr) {
  * index
 */
 unsigned index_mask(int n) {
-    unsigned int mask = 0;
+    unsigned mask = 0;
     for (int i = 0; i < n; ++i) {
         mask *= 2;
         mask += 1;
@@ -162,8 +161,8 @@ unsigned index_mask(int n) {
  *   write_a - 1 if write-allocate, 0 if no-write-allocate
  *   write_b - 1 if write-back, 0 if write-through
  *   lru - 1 if lru, 0 if fifo
- *   index_length - length of the index in the address 
- *   offset_length - length of the offset in the address
+ *   index_l - length of the index in the address 
+ *   offset_l - length of the offset in the address
  *   bytes - number of bytes per block
  *   cycles - reference to the number of cycles
  *
@@ -172,7 +171,7 @@ unsigned index_mask(int n) {
  *   0 on miss
  *   -1 on error
  */
-int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_length, int offset_length, int bytes, int &cycles) {
+int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_l, int offset_l, int bytes, int &cycles) {
     char store_load = line[0]; // store or load
     unsigned addr_i;
     try {
@@ -183,19 +182,18 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
         return -1;
     }
     
-    // accounts for offset
-    unsigned index = (addr_i >> offset_length) & index_mask(index_length);
-    unsigned tag = addr_i >> (offset_length + index_length);
+    // generate the index and the tag
+    unsigned index = addr_i >> offset_l, tag = addr_i >> (offset_l + index_l);
+    index &= index_mask(index_l);
     
-    if (store_load == 's') {
-        //store -> check if hit or miss
-    } else if (store_load == 'l') {
-        //load -> check if hit or miss
+    if (store_load == 's') { //store
+        return store(index, tag, cache, write_a, write_b, lru, bytes, cycles);
+    } else if (store_load == 'l') { //load 
+        return load(index, tag, cache, lru, bytes, cycles);
     } else {
         cerr << "Error: not a store or load instruction" << endl;
         return -1;
     }
-    return -1;
 }
 
 /*
@@ -209,93 +207,118 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
  *   index of block on hit
  *   -1 on miss
  */
-int find_block(unsigned int tag, Set set) {
+int get_index(unsigned tag, Set set) {
     for (int i = 0; i < (int) set.slots.size(); ++i) {
-        if (tag == set.slots[i].tag && set.slots[i].tag != 0) {
+        if (tag == set.slots[i].tag && set.slots[i].state != -1) {
             return i;
         }
     }
     return -1;
 }
 
-/**
- * 
-*/
-
 
 /**
- * 
+ * Store at the given address
 */
-int store(unsigned int index, unsigned int tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
-    int block_index = find_block(tag, cache.sets[index]);
-    int words = bytes/4;
-    if (block_index != -1) { // hit
-        if (write_b) {
+int store(unsigned index, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
+    int set_index = get_index(tag, cache.sets[index]);
+    if (set_index >= 0) { // hit
+        // update the timestamp of LRU to global cycle number
+        Slot *sl = &(cache.sets[index].slots[set_index]);
+        sl->access_ts = cache.total_ts;
+        if (write_b) { // write-back
             // write only to cache, mark dirty
-            cycles += 1;
-            cache.sets[index].slots[block_index].valid = -1;
-        } else {
+            cycles++;
+            sl->state = 1;
+        } else { // write-through
             // writes to cache and memory
             cycles += 100;
         }
-        if (lru) {
-            //TODO: rotate back 
-
-        }
+        cache.total_ts++;
         return 1;
+    } else { // miss
+        if (write_a) { // write-allocate
+            load(index, tag, cache, lru, bytes, cycles); // call load
+            if (write_b) { // write-back
+                set_index = get_index(tag, cache.sets[index]);
+                Slot *s = &(cache.sets[index].slots[set_index]);
+                s->state = 1;
+                cycles++;
+            } else { // write through
+                cycles += 100; 
+            } 
+        } else { // no-write-allocate
+            if (!write_b) {
+                // write to memory
+                cycles += 100;
+            }       
+        }
     }
-    // miss
-    if (write_a) {
-        // write from memory to cache
-        cycles += 100 * words;
-
-        // write to cache
-
-        //TODO: rotatebackS w index -1
-
-        cache.sets[index].slots[0].tag = tag;
-        cache.sets[index].slots[0].valid = 1;
-        if (write_b) {
-            // write to cache
-            cycles += 1;
-        } else {
-            // write to cache and memory
-            cycles += 100; 
-        } 
-    } else {
-        if (!write_b) {
-            // write to memory
-            cycles += 100;
-        }       
-    }
+    cache.total_ts++;
     return 0;
 }
 
 /**
- * 
- * 
+ * Load from the given address.
 */
-int load(unsigned int index, unsigned int tag, Cache &cache, bool lru, int bytes, int &cycles) {
-    int block_index = find_block(tag, cache.sets[index]);
+int load(unsigned index, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles) {
+    int set_index = -1;
     int words = bytes / 4;
-    if (block_index != -1) {
-        // load hit
-        cycles += 1;
-        if (lru) {
-            //TODO:rotate back
+    // check if block is full
+    Set *curset = &(cache.sets[index]);
+    for (int i = 0; i < (int) curset->slots.size(); i++) {
+        Slot *s = &(curset->slots[i]);
+        if (tag == s->tag && s->state != -1) {
+            set_index = i;
+            break;
         }
+        if (s->state == -1) {
+            s->state = 0; // valid
+            s->tag = tag;                
+            s->access_ts = cache.total_ts; //lru timestamp
+            cycles++;
+            cache.total_ts++;
+            cycles += 100 *words;
+            return 0;
+        }
+    }
+    if (set_index >= 0) { // load hit
+        // update the timestamp of LRU to global cycle number
+        Slot *sl = &(cache.sets[index].slots[set_index]);
+        sl->access_ts = cache.total_ts;
+        cycles++;
+        cache.total_ts++;
         return 1;
-    }
-    // load miss
-    cycles += 100 * words;
-    //TODO:rotate back with -1 index
-    //if dirty
-    if (!cache.sets[index].slots[0].valid) {
+    } else { // load miss and block is full = evict ASSUMING LRU
         cycles += 100 * words;
+        unsigned cur_cycles = cycles;
+        int lru_index = -1;
+        Set *cset = &(cache.sets[index]);
+        for(int j = 0; j < (int) cset->slots.size(); j++){
+            Slot *ss = &(cset->slots[j]);
+            if (cur_cycles > ss->access_ts){
+                cur_cycles = ss->access_ts;
+                lru_index = j; 
+            }
+        } 
+        if (cache.sets[index].slots[lru_index].state == 1) {
+            cycles += 100 * words; 
+        }
+        Slot *s = &(cache.sets[index].slots[lru_index]);
+        s->state = -1;
+        // load for real
+        curset = &(cache.sets[index]);
+        for (int j=0; j < (int) curset->slots.size(); j++) {
+            Slot *s = &(curset->slots[j]);
+            if (s->state == -1) {
+                s->state = 0; // valid
+                s->tag = tag;
+                s->access_ts = cache.total_ts; //lru timestamp
+            }
+        }
+        cycles++;
     }
-    cache.sets[index].slots[0].tag = tag;
-    cache.sets[index].slots[0].valid = 1;
-    cycles += 1;
+    cache.total_ts++;
     return 0;
 }
 
