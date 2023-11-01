@@ -14,20 +14,20 @@ using std::stoul;
 using std::exception;
 
 /** 
- * Store arguments into variables
+ * Store arguments into variables.
  * 
  * Parameters:
- * sets - num of sets to store
- * blocks - num of blocks to store
- * bytes - num of bytes to store
- * write_a - if write allocate or not
- * write_b - if write back or not
- * lru - if lru or fifo
- * argv - arguments from userS
+ *   sets - num of sets to store
+ *   blocks - num of blocks to store
+ *   bytes - num of bytes to store
+ *   write_a - if write allocate or not
+ *   write_b - if write back or not
+ *   lru - if lru or fifo
+ *   argv - arguments from userS
  * 
  * Return:
- * 1 for error with arguments
- * 0 for no errors
+ *   1 for error with arguments
+ *   0 for no errors
 */
 int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv) {
 
@@ -53,13 +53,13 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
 }
 
 /**
- * Checks if a decimal number is a power of 2
+ * Checks if a decimal number is a power of 2.
  * 
  * Parameters:
- * n (int) - given decimal number
+ *   n - given decimal number
  * 
  * Returns:
- * true if number is a power of 2, else false
+ *   true if number is a power of 2, else false
 */
 bool is_power_2(int n) {
     if (n <= 0) {  
@@ -70,10 +70,10 @@ bool is_power_2(int n) {
 
 
 /**
- * Gets the log base 2 of a number, corresponding to length of a binary string;
+ * Gets the log base 2 of a number, corresponding to length of a binary string.
  * 
  * Parameters:
- * n - integer to calculate log base 2
+ *   n - the decimal number given
  * 
  * Returns:
  *   the log base 2 of n
@@ -115,7 +115,7 @@ int dec_to_bin(int n) {
   return count;
 }
 
-/**
+/*
  * Converts a 32-bit hex address to unsigned int.
  *
  * Parameters:
@@ -139,10 +139,10 @@ unsigned hex_to_int(string addr) {
  * Creates index mask to extract the index.
  * 
  * Parameters:
- * n - length of mask
+ *   n - length of mask
  * 
  * Returns:
- * index
+ *   mask for getting the index
 */
 unsigned index_mask(int n) {
     unsigned mask = 0;
@@ -173,15 +173,15 @@ int get_index(Set *set, unsigned tag) {
     return -1; // cache miss
 }
 
-/**
+/*
  * Processes one line of input (contains store/load, address).
  *
  * Parameters:
  *   line - the line to be processed in string form
  *   cache - reference to the cache
- *   write_a - 1 if write-allocate, 0 if no-write-allocate
- *   write_b - 1 if write-back, 0 if write-through
- *   lru - 1 if lru, 0 if fifo
+ *   write_a - true if write-allocate, false if no-write-allocate
+ *   write_b - true if write-back, false if write-through
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
  *   index_l - length of the index in the address 
  *   offset_l - length of the offset in the address
  *   bytes - number of bytes per block
@@ -223,8 +223,22 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
 
 
 /**
- * Store at the given address.
-*/
+ * Store data at the given address in the cache.
+ *
+ * Parameters:
+ *   set - pointer to the cache set where the data should be stored
+ *   tag - tag associated with the data to be stored
+ *   cache - reference to the Cache object that holds the cache structure
+ *   write_a - true if write-allocate, false if no-write-allocate
+ *   write_b - true if write-back, false if write-through
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
+ *   bytes - number of bytes to be stored in the cache
+ *   cycles - number of cycles taken by this operation
+ *
+ * Returns:
+ *   1 on cache hit (data was successfully stored in the cache)
+ *   0 on cache miss (data was not found in the cache)
+ */
 int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
     // retrieve set index for cache
     int set_index = get_index(set, tag);
@@ -267,58 +281,48 @@ int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool
 
 
 void evict_block(Set *set, unsigned tag, Cache &cache, bool lru, int words, int &cycles) {
+    // find the index for slot to evict, based on policy
+    int index = -1; 
     if (lru) {
-        unsigned min_cycles = cycles;
+        unsigned min_lru_counter = cycles;
         int lru_index = -1;
-        // reset all the timestamps in the set
+        // find the slot with the lowest LRU cycle timestamp (least recently accessed)
         for (int i = 0; i < (int) set->slots.size(); i++) {
             Slot *slot = &(set->slots[i]);
-            if (min_cycles > slot->access_ts) {
-                min_cycles = slot->access_ts;
-                lru_index = i; 
-            }
-        }
-        Slot *lru_slot = &(set->slots[lru_index]);
-        if (lru_slot->dirty) {
-            cycles += 100 * words;
-        }
-        lru_slot->valid = false;
-        lru_slot->dirty = false;
-        // load for real
-        for (int i = 0; i < (int) set->slots.size(); i++) {
-            Slot *slot = &(set->slots[i]);
-            if (!slot->valid) {
-                slot->valid = true; // valid
-                slot->tag = tag;
-                slot->access_ts = cache.total_ts; //lru timestamp
+            if (min_lru_counter > slot->access_ts) {
+                min_lru_counter = slot->access_ts;
+                index = i; 
             }
         }
     } else {
-        unsigned min_counter = UINT32_MAX;
+        unsigned min_fifo_counter = UINT32_MAX;
         int fifo_index = -1;
-        // find the block with the lowest FIFO counter (the oldest block)
-        for (int j = 0; j < (int) set->slots.size(); j++) {
-            Slot *slot = &(set->slots[j]);
-            if (min_counter > slot->load_ts) {
-                min_counter = slot->load_ts;
-                fifo_index = j;
+        // find the slot with the lowest FIFO counter/load time (the oldest block)
+        for (int i = 0; i < (int) set->slots.size(); i++) {
+            Slot *slot = &(set->slots[i]);
+            if (min_fifo_counter > slot->load_ts) {
+                min_fifo_counter = slot->load_ts;
+                fifo_index = i;
             }
         }
-        Slot *fifo_slot = &(set->slots[fifo_index]);
-        if (fifo_slot->dirty) {
-            cycles += 100 * words;
-        }
-        fifo_slot->valid = false;
-        fifo_slot->dirty = false;
-        // load for real
-        for (int j = 0; j < (int) set->slots.size(); j++) {
-            Slot *slot = &(set->slots[j]);
-            if (!slot->valid) {
-                slot->valid = true;
-                slot->tag = tag;
-                slot->access_ts = cache.total_ts; // LRU timestamp
-                slot->load_ts = cache.load_counter++; // FIFO counter
-            }
+    }
+
+    // evict the slot 
+    Slot *found_slot = &(set->slots[index]);
+    if (found_slot->dirty) {
+        cycles += 100 * words;
+    }
+    found_slot->valid = false;
+    found_slot->dirty = false;
+
+    // load the data (for real this time)
+    for (int i = 0; i < (int) set->slots.size(); i++) {
+        Slot *slot = &(set->slots[i]);
+        if (!slot->valid) {
+            slot->tag = tag;
+            slot->valid = true;
+            slot->access_ts = cache.total_ts; // LRU timestamp
+            slot->load_ts = cache.load_counter; // FIFO counter
         }
     }
 }
@@ -368,6 +372,7 @@ int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles)
     evict_block(set, tag, cache, lru, words, cycles);
     cycles++;
     cache.total_ts++;
+    cache.load_counter++;
     return 0; // cache miss
     
 }

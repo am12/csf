@@ -8,7 +8,7 @@ Lauren and Alan worked together on MS2 to design the LRU simulator components. L
 function implementation while Alan focused on fleshing the logic of util.cpp.
 
 MS3:
-Alan worked on implemented FIFO while Lauren worked on testing the different cache types
+Both worked on debugging and optimizing code. Alan worked on implementing the FIFO cache while Lauren worked on testing the different cache types. 
 
 
 Best Cache: 
@@ -130,5 +130,4 @@ either lru or fifo
     Store misses: 9236
     Total cycles: 9353719
 
-    Based on this information, we can see that lru and fifo eviction types work equally well 
-
+    Based on this information, we can see that lru and fifo eviction types work equally well.
