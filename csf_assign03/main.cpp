@@ -11,10 +11,8 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-// helper function declarations
+// helper function declaration
 void print_summary(Summary &s);
-void print_state(Cache &cache);
-void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru);
 
 int main(int argc, char **argv) {
 
