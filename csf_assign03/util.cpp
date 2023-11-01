@@ -20,17 +20,18 @@ using std::exception;
 using std::stringstream;
 
 /** 
- * Store arguments into variables
+ * Store arguments into variables.
  * 
  * Parameters:
+ *   s
  * 
  * Return:
- * 1 for error with arguments
- * 0 for no errors
+ *   1 for error with arguments
+ *   0 for no errors
 */
 int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv) {
 
-    //storing into vars
+    // storing into vars
     sets = stoi(argv[1]);
     blocks = stoi(argv[2]);
     bytes = stoi(argv[3]);
@@ -38,7 +39,7 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
     write_b = (strcmp(argv[5], "write-back") == 0);
     lru = (strcmp(argv[6], "lru") == 0);
 
-    //check invalid paramters
+    // check invalid paramters
     if ((bytes < 4) || (!is_power_2(blocks)) || (!is_power_2(sets)) || (!is_power_2(bytes))) {
         return 1; // error
     }
@@ -52,13 +53,13 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
 }
 
 /**
- * Checks if a decimal number is a power of 2
+ * Checks if a decimal number is a power of 2.
  * 
  * Parameters:
- * n (int) - given decimal number
+ *   n - given decimal number
  * 
  * Returns:
- * true if number is a power of 2, else false
+ *   true if number is a power of 2, else false
 */
 bool is_power_2(int n) {
     if (n <= 0) {  
@@ -69,13 +70,14 @@ bool is_power_2(int n) {
 
 
 /**
- * Gets the log base 2 of a number, corresponding to length of a binary string;
+ * Gets the log base 2 of a number, corresponding to length of a binary string.
  * 
  * Parameters:
+ *   n - the decimal number given
  * 
  * Returns:
- * the log base 2 of n
- * -1 if not a valid number
+ *   the log base 2 of n
+ *   -1 if not a valid number
  * 
 */
 int log2(int n) {
@@ -93,10 +95,10 @@ int log2(int n) {
 
 
 /**
- * Converts a decimal number to binary
+ * Converts a decimal number to binary.
  *
  * Parameters:
- * n (int) - decimal number
+ *   n - decimal number
  *
  * Returns:
  *   number in binary
@@ -138,10 +140,10 @@ unsigned hex_to_int(string addr) {
  * Creates index mask to extract the index.
  * 
  * Parameters:
- * n - length of mask
+ *   n - length of mask
  * 
  * Returns:
- * index
+ *   mask for getting the index
 */
 unsigned index_mask(int n) {
     unsigned mask = 0;
@@ -192,7 +194,8 @@ int get_index(Set *set, unsigned tag) {
  *   -1 on error
  */
 int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_l, int offset_l, int bytes, int &cycles) {
-    char store_load = line[0]; // store or load
+    // get store or load command, address
+    char store_load = line[0]; 
     unsigned addr_i;
     try {
         string address = line.substr(2, 10);
@@ -210,9 +213,9 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
     // get the set associated with the given index
     Set *set = &(cache.sets[index]);
     
-    if (store_load == 's') { //store
+    if (store_load == 's') { // store
         return store(set, tag, cache, write_a, write_b, lru, bytes, cycles);
-    } else if (store_load == 'l') { //load 
+    } else if (store_load == 'l') { // load 
         return load(set, tag, cache, lru, bytes, cycles);
     } else {
         cerr << "Error: not a store or load instruction" << endl;
