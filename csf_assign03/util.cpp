@@ -227,26 +227,6 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
     }
 }
 
-/*
- * Finds the index of a block tag in a set.
- *
- * Parameters:
- *   tag - the tag of the block to be found
- *   set - the set of blocks
- *
- * Returns:
- *   index of block on hit
- *   -1 on miss
- */
-int get_index(Set *set, unsigned tag) {
-    for (int i = 0; i < (int) set->slots.size(); ++i) {
-        if (set->slots[i].valid && tag == set->slots[i].tag) {
-            return i; // cache hit
-        }
-    }
-    return -1; // cache miss
-}
-
 
 /**
  * Store at the given address.
