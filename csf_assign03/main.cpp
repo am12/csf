@@ -120,6 +120,13 @@ void print_summary(Summary &s) {
 /** 
  * Prints the parameters of the cache.
  * 
+ * Parameters:
+ * sets - num of sets to print
+ * blocks - num of blocks to print
+ * bytes - num of bytes to print
+ * write_a - write or no write
+ * write_n - write or no write
+ * 
 */
 void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru) {
     cout << "Number of sets: " << sets << endl; 
@@ -130,6 +137,13 @@ void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bo
     cout << "Upon eviction: " << (lru ? "lru" : "fifo") << endl;
 }
 
+/**
+ * Prints the state of the cache
+ * 
+ * Parameters:
+ * cache - the current cache to print
+ * 
+*/
 void print_state(Cache &cache) {
     for (int i=0; i < (int)cache.sets.size(); i++) {
         cout << "Cache set index " << i << " contains the following slots:" << endl;

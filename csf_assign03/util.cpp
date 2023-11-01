@@ -20,18 +20,24 @@ using std::exception;
 using std::stringstream;
 
 /** 
- * Store arguments into variables.
+ * Store arguments into variables
  * 
  * Parameters:
- *   s
+ * sets - num of sets to store
+ * blocks - num of blocks to store
+ * bytes - num of bytes to store
+ * write_a - if write allocate or not
+ * write_b - if write back or not
+ * lru - if lru or fifo
+ * argv - arguments from userS
  * 
  * Return:
- *   1 for error with arguments
- *   0 for no errors
+ * 1 for error with arguments
+ * 0 for no errors
 */
 int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv) {
 
-    // storing into vars
+    //storing into vars
     sets = stoi(argv[1]);
     blocks = stoi(argv[2]);
     bytes = stoi(argv[3]);
@@ -39,7 +45,7 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
     write_b = (strcmp(argv[5], "write-back") == 0);
     lru = (strcmp(argv[6], "lru") == 0);
 
-    // check invalid paramters
+    //check invalid paramters
     if ((bytes < 4) || (!is_power_2(blocks)) || (!is_power_2(sets)) || (!is_power_2(bytes))) {
         return 1; // error
     }
@@ -53,13 +59,13 @@ int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b,
 }
 
 /**
- * Checks if a decimal number is a power of 2.
+ * Checks if a decimal number is a power of 2
  * 
  * Parameters:
- *   n - given decimal number
+ * n (int) - given decimal number
  * 
  * Returns:
- *   true if number is a power of 2, else false
+ * true if number is a power of 2, else false
 */
 bool is_power_2(int n) {
     if (n <= 0) {  
@@ -70,14 +76,14 @@ bool is_power_2(int n) {
 
 
 /**
- * Gets the log base 2 of a number, corresponding to length of a binary string.
+ * Gets the log base 2 of a number, corresponding to length of a binary string;
  * 
  * Parameters:
- *   n - the decimal number given
+ * n - integer to calculate log base 2
  * 
  * Returns:
- *   the log base 2 of n
- *   -1 if not a valid number
+ * the log base 2 of n
+ * -1 if not a valid number
  * 
 */
 int log2(int n) {
@@ -95,10 +101,10 @@ int log2(int n) {
 
 
 /**
- * Converts a decimal number to binary.
+ * Converts a decimal number to binary
  *
  * Parameters:
- *   n - decimal number
+ * n (int) - decimal number
  *
  * Returns:
  *   number in binary
@@ -140,10 +146,10 @@ unsigned hex_to_int(string addr) {
  * Creates index mask to extract the index.
  * 
  * Parameters:
- *   n - length of mask
+ * n - length of mask
  * 
  * Returns:
- *   mask for getting the index
+ * index
 */
 unsigned index_mask(int n) {
     unsigned mask = 0;
@@ -152,6 +158,54 @@ unsigned index_mask(int n) {
         mask += 1;
     }
     return mask;
+}
+
+/*
+ * Processes one line of input (contains store/load, address).
+ *
+ * Parameters:
+ *   line - the line to be processed in string form
+ *   cache - reference to the cache
+ *   write_a - 1 if write-allocate, 0 if no-write-allocate
+ *   write_b - 1 if write-back, 0 if write-through
+ *   lru - 1 if lru, 0 if fifo
+ *   index_l - length of the index in the address 
+ *   offset_l - length of the offset in the address
+ *   bytes - number of bytes per block
+ *   cycles - reference to the number of cycles
+ *
+ * Returns:
+ *   1 on hit
+ *   0 on miss
+ *   -1 on error
+ */
+int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_l, int offset_l, int bytes, int &cycles) {
+    char store_load = line[0]; // store or load
+    unsigned addr_i;
+    try {
+        string address = line.substr(2, 10);
+        addr_i = hex_to_int(address);
+    } catch (...) {
+        cerr << "Error: invalid address" << endl;
+        return -1;
+    }
+    
+    // generate the index and the tag
+    unsigned index = addr_i >> offset_l;
+    index &= index_mask(index_l);  
+    unsigned tag = addr_i >> (offset_l + index_l);
+
+    // get the set associated with the given index
+    Set *set = &(cache.sets[index]);
+    
+    if (store_load == 's') { //store
+        return store(set, tag, cache, write_a, write_b, lru, bytes, cycles);
+    } else if (store_load == 'l') { //load 
+        return load(set, tag, cache, lru, bytes, cycles);
+    } else {
+        cerr << "Error: not a store or load instruction" << endl;
+        return -1;
+    }
 }
 
 /*
@@ -174,72 +228,10 @@ int get_index(Set *set, unsigned tag) {
     return -1; // cache miss
 }
 
-/*
- * Processes one line of input (contains store/load, address).
- *
- * Parameters:
- *   line - the line to be processed in string form
- *   cache - reference to the cache
- *   write_a - true if write-allocate, false if no-write-allocate
- *   write_b - true if write-back, false if write-through
- *   lru - true if LRU, false if FIFO (cache replacement policy)
- *   index_l - length of the index in the address 
- *   offset_l - length of the offset in the address
- *   bytes - number of bytes per block
- *   cycles - reference to the number of cycles
- *
- * Returns:
- *   1 on hit
- *   0 on miss
- *   -1 on error
- */
-int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru, int index_l, int offset_l, int bytes, int &cycles) {
-    // get store or load command, address
-    char store_load = line[0]; 
-    unsigned addr_i;
-    try {
-        string address = line.substr(2, 10);
-        addr_i = hex_to_int(address);
-    } catch (...) {
-        cerr << "Error: invalid address" << endl;
-        return -1;
-    }
-    
-    // generate the index and the tag
-    unsigned index = addr_i >> offset_l;
-    index &= index_mask(index_l);  
-    unsigned tag = addr_i >> (offset_l + index_l);
-
-    // get the set associated with the given index
-    Set *set = &(cache.sets[index]);
-    
-    if (store_load == 's') { // store
-        return store(set, tag, cache, write_a, write_b, lru, bytes, cycles);
-    } else if (store_load == 'l') { // load 
-        return load(set, tag, cache, lru, bytes, cycles);
-    } else {
-        cerr << "Error: not a store or load instruction" << endl;
-        return -1;
-    }
-}
 
 /**
- * Store data at the given address in the cache.
- *
- * Parameters:
- *   set - pointer to the cache set where the data should be stored
- *   tag - tag associated with the data to be stored
- *   cache - reference to the Cache object that holds the cache structure
- *   write_a - true if write-allocate, false if no-write-allocate
- *   write_b - true if write-back, false if write-through
- *   lru - true if LRU, false if FIFO (cache replacement policy)
- *   bytes - number of bytes to be stored in the cache
- *   cycles - number of cycles taken by this operation
- *
- * Returns:
- *   1 on cache hit (data was successfully stored in the cache)
- *   0 on cache miss (data was not found in the cache)
- */
+ * Store at the given address.
+*/
 int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
     // retrieve set index for cache
     int set_index = get_index(set, tag);
@@ -281,20 +273,8 @@ int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool
 }
 
 /**
- * Load data from the given address in the cache, handling cache misses, evictions, and replacement policies.
- * 
- * Parameters:
- *   set - pointer to the cache set from which data should be loaded
- *   tag - tag associated with the data to be loaded
- *   cache - reference to the Cache object that holds the cache structure
- *   lru - true if LRU, false if FIFO (cache replacement policy)
- *   bytes - number of bytes to be loaded from the cache
- *   cycles - number of cycles taken by this operation
- *
- * Returns:
- *   1 on cache hit (data was successfully stored in the cache)
- *   0 on cache miss (data was not found in the cache)
- */
+ * Load from the given address.
+*/
 int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles) {
     int words = bytes / 4;
     int set_index = -1;
