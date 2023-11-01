@@ -153,14 +153,34 @@ unsigned index_mask(int n) {
 }
 
 /*
+ * Finds the index of a block tag in a set.
+ *
+ * Parameters:
+ *   tag - the tag of the block to be found
+ *   set - the set of blocks
+ *
+ * Returns:
+ *   index of block on hit
+ *   -1 on miss
+ */
+int get_index(Set *set, unsigned tag) {
+    for (int i = 0; i < (int) set->slots.size(); ++i) {
+        if (set->slots[i].valid && tag == set->slots[i].tag) {
+            return i; // cache hit
+        }
+    }
+    return -1; // cache miss
+}
+
+/*
  * Processes one line of input (contains store/load, address).
  *
  * Parameters:
  *   line - the line to be processed in string form
  *   cache - reference to the cache
- *   write_a - 1 if write-allocate, 0 if no-write-allocate
- *   write_b - 1 if write-back, 0 if write-through
- *   lru - 1 if lru, 0 if fifo
+ *   write_a - true if write-allocate, false if no-write-allocate
+ *   write_b - true if write-back, false if write-through
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
  *   index_l - length of the index in the address 
  *   offset_l - length of the offset in the address
  *   bytes - number of bytes per block
@@ -200,30 +220,23 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
     }
 }
 
-/*
- * Finds the index of a block tag in a set.
+/**
+ * Store data at the given address in the cache.
  *
  * Parameters:
- *   tag - the tag of the block to be found
- *   set - the set of blocks
+ *   set - pointer to the cache set where the data should be stored
+ *   tag - tag associated with the data to be stored
+ *   cache - reference to the Cache object that holds the cache structure
+ *   write_a - true if write-allocate, false if no-write-allocate
+ *   write_b - true if write-back, false if write-through
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
+ *   bytes - number of bytes to be stored in the cache
+ *   cycles - number of cycles taken by this operation
  *
  * Returns:
- *   index of block on hit
- *   -1 on miss
+ *   1 on cache hit (data was successfully stored in the cache)
+ *   0 on cache miss (data was not found in the cache)
  */
-int get_index(Set *set, unsigned tag) {
-    for (int i = 0; i < (int) set->slots.size(); ++i) {
-        if (set->slots[i].valid && tag == set->slots[i].tag) {
-            return i; // cache hit
-        }
-    }
-    return -1; // cache miss
-}
-
-
-/**
- * Store at the given address.
-*/
 int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
     // retrieve set index for cache
     int set_index = get_index(set, tag);
@@ -265,8 +278,20 @@ int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool
 }
 
 /**
- * Load from the given address.
-*/
+ * Load data from the given address in the cache, handling cache misses, evictions, and replacement policies.
+ * 
+ * Parameters:
+ *   set - pointer to the cache set from which data should be loaded
+ *   tag - tag associated with the data to be loaded
+ *   cache - reference to the Cache object that holds the cache structure
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
+ *   bytes - number of bytes to be loaded from the cache
+ *   cycles - number of cycles taken by this operation
+ *
+ * Returns:
+ *   1 on cache hit (data was successfully stored in the cache)
+ *   0 on cache miss (data was not found in the cache)
+ */
 int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles) {
     int words = bytes / 4;
     int set_index = -1;
