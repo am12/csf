@@ -6,18 +6,12 @@
 #include <sstream>
 #include <iostream>
 
-using std::vector;
-using std::cin;
-using std::cout;
 using std::cerr;
 using std::endl;
-using std::pair;
 using std::string;
 using std::stoi;
-using std::hex;
 using std::stoul;
 using std::exception;
-using std::stringstream;
 
 /** 
  * Store arguments into variables

@@ -5,13 +5,10 @@
 #include "util.h"
 #include <iostream>
 
-using namespace std;
-using std::vector;
 using std::cin;
 using std::cout;
 using std::cerr;
 using std::endl;
-using std::pair;
 using std::string;
 
 // helper function declarations
@@ -20,7 +17,6 @@ void print_state(Cache &cache);
 void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru);
 
 int main(int argc, char **argv) {
-    // example input: ./csim 256 4 16 write-allocate write-back lru < sometracefile
 
     // error handling
     if (argc != 7) {
@@ -44,9 +40,6 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    // DEBUG
-    //print_cache(sets, blocks, bytes, write_alloc, write_back, lru);
-
     // generate index, blocks, offset lengths
     int index_l = log2(sets), block_l = log2(blocks), offset_l = log2(bytes);
     if (index_l < 0 || block_l < 0 || offset_l < 2) {
@@ -54,9 +47,11 @@ int main(int argc, char **argv) {
         return 3;
     }
 
-    // main parsing file and executing cache logic
+    // create cache and summary objects
     Cache cache(sets, blocks, bytes);
     Summary summary;
+
+    // parse the input and execute commands
     string command;
     while (getline(cin, command)) {
         char c = command[0];
@@ -78,25 +73,15 @@ int main(int argc, char **argv) {
         }
     }
 
-    //print_state(cache);
-
     // print statistics
     print_summary(summary);
-
-    //write_a false -> no write
-    //write_b false -> write back
-    //lru false -> fifo
-
-    //n sets of 1 block each: direct mapped 
-    //n sets of m blocks each: m-way set-associative
-    //1 set of n blocks: fully associative 
 
     return 0; // return successfully
 }
 
 
 /**
- * Prints final counts
+ * Prints final counts.
  * 
  * Parameters:
  * store_hits: # of time it hits when storing
@@ -138,7 +123,7 @@ void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bo
 }
 
 /**
- * Prints the state of the cache
+ * Prints the state of the cache.
  * 
  * Parameters:
  * cache - the current cache to print
