@@ -183,8 +183,9 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
     }
     
     // generate the index and the tag
-    unsigned index = addr_i >> offset_l, tag = addr_i >> (offset_l + index_l);
+    unsigned index = addr_i >> offset_l;
     index &= index_mask(index_l);  
+    unsigned tag = addr_i >> (offset_l + index_l);
 
     // get the set associated with the given index
     Set *set = &(cache.sets[index]);
@@ -212,7 +213,7 @@ int process_line(string line, Cache &cache, bool write_a, bool write_b, bool lru
  */
 int get_index(Set *set, unsigned tag) {
     for (int i = 0; i < (int) set->slots.size(); ++i) {
-        if (tag == set->slots[i].tag && set->slots[i].state != -1) {
+        if (set->slots[i].valid && tag == set->slots[i].tag) {
             return i; // cache hit
         }
     }
@@ -224,27 +225,30 @@ int get_index(Set *set, unsigned tag) {
  * Store at the given address.
 */
 int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles) {
-    // retrieve index for cache (check if hit or miss)
+    // retrieve set index for cache
     int set_index = get_index(set, tag);
-    if (set_index >= 0) { // hit
+
+    // upon hit:
+    if (set_index >= 0) {
         // update the timestamp of LRU to global cycle number
-        Slot *sl = &(set->slots[set_index]);
-        sl->access_ts = cache.total_ts;
+        Slot *slot = &(set->slots[set_index]);
+        slot->access_ts = cache.total_ts;
         if (write_b) { // write-back -> write to cache only, mark dirty
             cycles++;
-            sl->state = 1;
+            slot->dirty = true;
         } else { // write-through -> write to cache and memory
             cycles += 100;
         }
         cache.total_ts++; // update timestamp of cache
         return 1;
-    } else { // miss
+    // upon miss:
+    } else {
         if (write_a) { // write-allocate -> load value from memory 
             load(set, tag, cache, lru, bytes, cycles);
             if (write_b) { // write-back -> write value to cache
                 set_index = get_index(set, tag);
-                Slot *s = &(set->slots[set_index]);
-                s->state = 1;
+                Slot *slot = &(set->slots[set_index]);
+                slot->dirty = true;
                 cycles++;
             } else { // write through -> write to cache and memory
                 cycles += 100; 
@@ -255,70 +259,108 @@ int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool
                 cycles += 100;
             }       
         }
+        cache.total_ts++;
+        return 0;
     }
-    cache.total_ts++;
-    return 0;
 }
 
 /**
  * Load from the given address.
 */
 int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles) {
-    int set_index = -1;
     int words = bytes / 4;
-    // check if block is full
+    int set_index = -1;
+
+    // check if block is full, load if not
     for (int i = 0; i < (int) set->slots.size(); i++) {
-        Slot *s = &(set->slots[i]);
-        if (tag == s->tag && s->state != -1) {
+        Slot *slot = &(set->slots[i]);
+        if (slot->valid && tag == slot->tag) {
             set_index = i;
             break;
         }
-        if (s->state == -1) {
-            s->state = 0; // valid
-            s->tag = tag;                
-            s->access_ts = cache.total_ts; //lru timestamp
+        if (!slot->valid) {
+            slot->valid = true; 
+            slot->tag = tag;                
+            slot->access_ts = cache.total_ts; // update LRU timestamp
+            slot->load_ts = cache.load_counter; // update FIFO counter
             cycles++;
             cache.total_ts++;
-            cycles += 100 *words;
+            cache.load_counter++;
+            cycles += 100 * words;
             return 0;
         }
     }
-    if (set_index >= 0) { // load hit
+
+    // upon hit:
+    if (set_index >= 0) { 
         // update the timestamp of LRU to global cycle number
-        Slot *sl = &(set->slots[set_index]);
-        sl->access_ts = cache.total_ts;
+        Slot *slot = &(set->slots[set_index]);
+        slot->access_ts = cache.total_ts;
         cycles++;
         cache.total_ts++;
         return 1;
-    } else { // load miss and block is full = evict ASSUMING LRU
+    // upon miss:
+    } else { // load miss and block is full -> evict ASSUMING LRU
         cycles += 100 * words;
-        unsigned cur_cycles = cycles;
-        int lru_index = -1;
-        for(int j = 0; j < (int) set->slots.size(); j++){
-            Slot *ss = &(set->slots[j]);
-            if (cur_cycles > ss->access_ts){
-                cur_cycles = ss->access_ts;
-                lru_index = j; 
+        if (lru) {
+            unsigned cur_cycles = cycles;
+            int lru_index = -1;
+            // reset all the timestamps in the set
+            for (int i = 0; i < (int) set->slots.size(); i++) {
+                Slot *slot = &(set->slots[i]);
+                if (cur_cycles > slot->access_ts) {
+                    cur_cycles = slot->access_ts;
+                    lru_index = i; 
+                }
             }
-        } 
-        if (set->slots[lru_index].state == 1) {
-            cycles += 100 * words; 
-        }
-        Slot *s = &(set->slots[lru_index]);
-        s->state = -1;
-        // load for real
-        for (int j=0; j < (int) set->slots.size(); j++) {
-            Slot *s = &(set->slots[j]);
-            if (s->state == -1) {
-                s->state = 0; // valid
-                s->tag = tag;
-                s->access_ts = cache.total_ts; //lru timestamp
+            Slot *lru_slot = &(set->slots[lru_index]);
+            if (lru_slot->dirty) {
+                cycles += 100 * words;
             }
+            lru_slot->valid = false;
+            lru_slot->dirty = false;
+            // load for real
+            for (int i = 0; i < (int) set->slots.size(); i++) {
+                Slot *slot = &(set->slots[i]);
+                if (!slot->valid) {
+                    slot->valid = true; // valid
+                    slot->tag = tag;
+                    slot->access_ts = cache.total_ts; //lru timestamp
+                }
+            }
+            cycles++;
+            cache.total_ts++;
+            return 0;
+        } else {
+            unsigned cur_counter = UINT32_MAX;
+            int fifo_index = -1;
+            // find the block with the lowest FIFO counter (the oldest block)
+            for (int j = 0; j < (int) set->slots.size(); j++) {
+                Slot *slot = &(set->slots[j]);
+                if (cur_counter > slot->load_ts) {
+                    cur_counter = slot->load_ts;
+                    fifo_index = j;
+                }
+            }
+            Slot *fifo_slot = &(set->slots[fifo_index]);
+            if (fifo_slot->dirty) {
+                cycles += 100 * words;
+            }
+            fifo_slot->valid = false;
+            fifo_slot->dirty = false;
+            // load for real
+            for (int j = 0; j < (int) set->slots.size(); j++) {
+                Slot *slot = &(set->slots[j]);
+                if (!slot->valid) {
+                    slot->valid = true;
+                    slot->tag = tag;
+                    slot->access_ts = cache.total_ts; // LRU timestamp
+                    slot->load_ts = cache.load_counter++; // FIFO counter
+                }
+            }
+            cycles++;
+            cache.total_ts++;
+            return 0;
         }
-        cycles++;
     }
-    cache.total_ts++;
-    return 0;
 }
-
-

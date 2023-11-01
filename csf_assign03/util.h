@@ -9,12 +9,12 @@
 
 struct Slot {
 	uint32_t tag;
-	int64_t state; // valid = 0, dirty = 1, default = -1
-	uint32_t load_ts, access_ts;
 	bool valid, dirty;
+	//int64_t state; // valid = 0, dirty = 1, default = -1
+	uint32_t load_ts, access_ts; // FIFO timestamp; LRU timestamp
 
 	// constructor
-	Slot(uint32_t tag, int state) : tag(tag), state(state), load_ts(0), access_ts(0) {}
+	Slot(uint32_t tag) : tag(tag), valid(false), dirty(false), load_ts(0), access_ts(0) {}
 };
 
 struct Set {
@@ -22,11 +22,9 @@ struct Set {
 	uint32_t set_size, block_size; // # blocks/set, # bytes/block
 
 	// constructor
-	Set(uint32_t num_blocks, uint32_t num_bytes) {
-		set_size = num_blocks;
-		block_size = num_bytes;
+	Set(uint32_t num_blocks, uint32_t num_bytes) : set_size(num_blocks), block_size(num_bytes) {
 		for (uint32_t i = 0; i < set_size; i++) {
-    		slots.emplace_back(0, -1);
+    		slots.emplace_back(0);
 		}
 	}
 };
@@ -34,12 +32,10 @@ struct Set {
 struct Cache {
 	uint32_t cache_size; // # sets/cache
 	std::vector<Set> sets;
-	int total_ts;
+	int load_counter, total_ts; // FIFO counter, LRU timestamp
 
 	// constructor
-	Cache(uint32_t num_sets, uint32_t set_size, uint32_t block_size) {
-		cache_size = num_sets;
-		total_ts = 0;
+	Cache(uint32_t num_sets, uint32_t set_size, uint32_t block_size) : cache_size(num_sets), load_counter(0), total_ts(0) {
 		for (uint32_t i = 0; i < cache_size; i++) {
     		sets.emplace_back(set_size, block_size);
 		}

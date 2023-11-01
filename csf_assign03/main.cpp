@@ -134,7 +134,7 @@ void print_state(Cache &cache) {
     for (int i=0; i < (int)cache.sets.size(); i++) {
         cout << "Cache set index " << i << " contains the following slots:" << endl;
         for (int j=0; j<(int)cache.sets[i].slots.size();j++) {
-            cout << j << " tag: " << cache.sets[i].slots[j].tag << ", state: " << cache.sets[i].slots[j].state << ", access_ts:" << cache.sets[i].slots[j].access_ts << endl;
+            cout << j << " tag: " << cache.sets[i].slots[j].tag << ", valid: " << cache.sets[i].slots[j].valid << ", dirty:" << cache.sets[i].slots[j].valid << ", access_ts:" << cache.sets[i].slots[j].access_ts << endl;
         }
     }
     cout << endl;
