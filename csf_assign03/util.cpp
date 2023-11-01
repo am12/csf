@@ -30,7 +30,7 @@ using std::exception;
  *   0 for no errors
 */
 int store_args(int &sets, int &blocks, int &bytes, bool &write_a, bool &write_b, bool &lru, char **argv) {
-
+    
     //storing into vars
     sets = stoi(argv[1]);
     blocks = stoi(argv[2]);
@@ -279,41 +279,49 @@ int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool
     }
 }
 
-
+/**
+ * Evict a data block from a cache set based on the specified eviction policy.
+ *
+ * Parameters:
+ *   set - pointer to the cache set from which data should be loaded
+ *   tag - tag associated with the data to be loaded
+ *   cache - reference to the Cache object that holds the cache structure
+ *   lru - true if LRU, false if FIFO (cache replacement policy)
+ *   words - number of bytes to be loaded from the cache, divided by 4
+ *   cycles - number of cycles taken by this operation
+ */
 void evict_block(Set *set, unsigned tag, Cache &cache, bool lru, int words, int &cycles) {
     // find the index for slot to evict, based on policy
-    int index = -1; 
-    if (lru) {
+    int eviction_index = -1; 
+    if (lru) { // LRU policy
         unsigned min_lru_counter = cycles;
-        int lru_index = -1;
         // find the slot with the lowest LRU cycle timestamp (least recently accessed)
         for (int i = 0; i < (int) set->slots.size(); i++) {
             Slot *slot = &(set->slots[i]);
             if (min_lru_counter > slot->access_ts) {
                 min_lru_counter = slot->access_ts;
-                index = i; 
+                eviction_index = i; 
             }
         }
-    } else {
+    } else { // FIFO policy
         unsigned min_fifo_counter = UINT32_MAX;
-        int fifo_index = -1;
         // find the slot with the lowest FIFO counter/load time (the oldest block)
         for (int i = 0; i < (int) set->slots.size(); i++) {
             Slot *slot = &(set->slots[i]);
             if (min_fifo_counter > slot->load_ts) {
                 min_fifo_counter = slot->load_ts;
-                fifo_index = i;
+                eviction_index = i;
             }
         }
     }
 
     // evict the slot 
-    Slot *found_slot = &(set->slots[index]);
-    if (found_slot->dirty) {
+    Slot *evict_slot = &(set->slots[eviction_index]);
+    if (evict_slot->dirty) {
         cycles += 100 * words;
     }
-    found_slot->valid = false;
-    found_slot->dirty = false;
+    evict_slot->valid = false;
+    evict_slot->dirty = false;
 
     // load the data (for real this time)
     for (int i = 0; i < (int) set->slots.size(); i++) {
@@ -374,5 +382,4 @@ int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles)
     cache.total_ts++;
     cache.load_counter++;
     return 0; // cache miss
-    
 }

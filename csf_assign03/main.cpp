@@ -18,12 +18,13 @@ void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bo
 
 int main(int argc, char **argv) {
 
-    // error handling
+    // check input args
     if (argc != 7) {
         cerr << ("Error: Wrong number of arguments") << endl;
         return 1;
     }
 
+    // read in args
     int sets, blocks, bytes;
     bool write_alloc, write_back, lru;
     int err_args = 0;
@@ -100,41 +101,4 @@ void print_summary(Summary &s) {
     cout << "Store hits: " << s.s_hits << endl;
     cout << "Store misses: " << s.s_misses << endl;
     cout << "Total cycles: " << s.cycles << endl;
-}
-
-/** 
- * Prints the parameters of the cache.
- * 
- * Parameters:
- * sets - num of sets to print
- * blocks - num of blocks to print
- * bytes - num of bytes to print
- * write_a - write or no write
- * write_n - write or no write
- * 
-*/
-void print_cache(int sets, int blocks, int bytes, bool write_a, bool write_b, bool lru) {
-    cout << "Number of sets: " << sets << endl; 
-    cout << "Numbers of blocks: " << blocks << endl; 
-    cout << "Number of bytes/block: " << bytes << endl; 
-    cout << "Upon miss: " << (write_a ? "write-allocate" : "no-write-allocate") << endl;
-    cout << "Upon hit: " << (write_b ? "write-back" : "write-through") << endl;
-    cout << "Upon eviction: " << (lru ? "lru" : "fifo") << endl;
-}
-
-/**
- * Prints the state of the cache.
- * 
- * Parameters:
- * cache - the current cache to print
- * 
-*/
-void print_state(Cache &cache) {
-    for (int i=0; i < (int)cache.sets.size(); i++) {
-        cout << "Cache set index " << i << " contains the following slots:" << endl;
-        for (int j=0; j<(int)cache.sets[i].slots.size();j++) {
-            cout << j << " tag: " << cache.sets[i].slots[j].tag << ", valid: " << cache.sets[i].slots[j].valid << ", dirty:" << cache.sets[i].slots[j].valid << ", access_ts:" << cache.sets[i].slots[j].access_ts << endl;
-        }
-    }
-    cout << endl;
 }

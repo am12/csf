@@ -68,6 +68,8 @@ int process_line(std::string line, Cache &cache, bool write_a, bool write_t, boo
 
 int store(Set *set, unsigned tag, Cache &cache, bool write_a, bool write_b, bool lru, int bytes, int &cycles);
 
+void evict_block(Set *set, unsigned tag, Cache &cache, bool lru, int words, int &cycles);
+
 int load(Set *set, unsigned tag, Cache &cache, bool lru, int bytes, int &cycles);
 
 #endif //UTIL_H
