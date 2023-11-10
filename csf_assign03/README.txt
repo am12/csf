@@ -8,7 +8,7 @@ Lauren and Alan worked together on MS2 to design the LRU simulator components. L
 function implementation while Alan focused on fleshing the logic of util.cpp.
 
 MS3:
-Alan worked on implemented FIFO while Lauren worked on testing the different cache types
+Both worked on debugging and optimizing code. Alan worked on implementing the FIFO cache while Lauren worked on testing the different cache types. 
 
 
 Best Cache: 
@@ -82,7 +82,7 @@ either lru or fifo
     larger caches perform better than smaller caches. However, we can see that between a large cache and an extra large cache
     the data does not vary that much, which indicates that the statistics relative to cache size plateaus after a certain extent.
 
-3. Varying combinations of parameters: 
+3. Varying cache write policies: 
     A: ./csim 256 4 16 write-allocate write-back lru < ./traces/gcc.trace
     Total loads: 318197
     Total stores: 197486
@@ -112,7 +112,7 @@ either lru or fifo
     no-write-back, it had less cycles during its performance. The worst performing parameters is no-write-allocate, no-write-back, as it 
     had the highest number of cycles, load misses, and store misses. 
 
-4. Varying eviction types:
+4. Varying eviction policies:
     LRU: ./csim 256 4 16 write-allocate write-back lru < ./traces/gcc.trace
     Total loads: 318197
     Total stores: 197486
@@ -130,5 +130,5 @@ either lru or fifo
     Store misses: 9236
     Total cycles: 9353719
 
-    Based on this information, we can see that lru and fifo eviction types work equally well 
-
+    Based on this information, we can see that lru and fifo eviction types work equally well, as they encounter the same amount of cycles for both.
+    Similarly, they also have the same numbers of hits and misses for both store and load.
