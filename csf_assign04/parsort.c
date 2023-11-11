@@ -109,7 +109,6 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   }
 
   // recursively sort halves in parallel
-
   size_t mid = begin + size/2;
 
   //parallelize the recursive sorting
