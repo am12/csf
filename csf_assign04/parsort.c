@@ -23,8 +23,8 @@
  *  0 if equal
 **/ 
 int compare_i64(const void *left_, const void *right_) {
-  int64_t left = *(int64_t *)left_;
-  int64_t right = *(int64_t *)right_;
+  int64_t left = *(int64_t *) left_;
+  int64_t right = *(int64_t *) right_;
   if (left < right) return -1;
   if (left > right) return 1;
   return 0;
@@ -39,8 +39,7 @@ int compare_i64(const void *left_, const void *right_) {
  *  end - the ending index of the subarray to be sorted (exclusive).
  */
 void seq_sort(int64_t *arr, size_t begin, size_t end) {
-  size_t num_elements = end - begin;
-  qsort(arr + begin, num_elements, sizeof(int64_t), compare_i64);
+  qsort(arr + begin, end - begin, sizeof(int64_t), compare_i64);
 }
 
 /**
@@ -62,18 +61,20 @@ void merge(int64_t *arr, size_t begin, size_t mid, size_t end, int64_t *temparr)
     int at_end_l = left >= endl;
     int at_end_r = right >= endr;
 
-    if (at_end_l && at_end_r) break;
-
-    if (at_end_l)
+    if (at_end_l && at_end_r) {
+      break;
+    }
+    if (at_end_l) {
       *dst++ = *right++;
-    else if (at_end_r)
+    } else if (at_end_r) {
       *dst++ = *left++;
-    else {
+    } else {
       int cmp = compare_i64(left, right);
-      if (cmp <= 0)
+      if (cmp <= 0) {
         *dst++ = *left++;
-      else
+      } else {
         *dst++ = *right++;
+      }
     }
   }
 }
@@ -88,7 +89,7 @@ void fatal(const char *msg) __attribute__ ((noreturn));
  */
 void fatal(const char *msg) {
   fprintf(stderr, "Error: %s\n", msg);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 /**
@@ -103,100 +104,83 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   assert(end >= begin);
   size_t size = end - begin;
 
-  if (size <= threshold) {
+  if (size <= threshold) { // problem is small enough to solve sequentially
     seq_sort(arr, begin, end);
-    return;
-  }
-
-  // recursively sort halves in parallel
-  size_t mid = begin + size/2;
-
-  //parallelize the recursive sorting
-
-  //flag to check that errors propagate upwards 
-  int prop_flag = 0; 
-
-  if((size) <= threshold){
-    qsort(arr + begin, size, sizeof(int64_t), compare_i64);
     return; 
-  } else { //greater than threshold, recursively call merge with child process
-    pid_t pid1 = fork(); //create first child process
-    if (pid1 == -1) {
-      fatal("Error: fork failed\n"); 
-    } else if(pid1 == 0) {
+  } else { // greater than threshold, recursively call merge with child processes
+
+    // divide the list and sort each half in parallel
+    size_t mid = begin + (size/2);
+
+    pid_t pid1 = fork(); // create first child process
+    if (pid1 == -1) { 
+      fatal("fork 1 failed"); 
+    } else if (pid1 == 0) {
       merge_sort(arr, begin, mid, threshold); 
-      exit(0);
+      exit(EXIT_SUCCESS);
     }
 
-    pid_t pid2 = fork(); //create second child process
+    pid_t pid2 = fork(); // create second child process
     if (pid2 == -1) {
-      fatal("Error: fork failed\n");
-    } else if(pid2 == 0) {
+      fatal("fork 2 failed");
+    } else if (pid2 == 0) {
       merge_sort(arr, mid, end, threshold); 
-      exit(0); 
+      exit(EXIT_SUCCESS); 
     }
 
-    int wstatus1; //wait for child process completion
-    pid_t pid_real = waitpid(pid1, &wstatus1, 0); 
-    if (pid_real == -1) {
-      fprintf(stderr, "Error: waitpid1 failed!\n"); 
-      prop_flag = 1; 
-    }
+    // wait for child processes to complete
+    int wstatus1, wstatus2;
+    pid_t pid_real1 = waitpid(pid1, &wstatus1, 0); 
+    pid_t pid_real2 = waitpid(pid2, &wstatus2, 0); 
 
-    int w2status; //wait for child process completion
-    pid_real = waitpid(pid2, &w2status, 0); 
-    if (pid_real == -1) {
-      fprintf(stderr, "Error: waitpid2 failed!\n"); 
-      prop_flag = 1; 
+    if (pid_real1 == -1) {
+      fatal("waitpid 1 failed!"); 
+      exit(EXIT_FAILURE);
     }
 
     if (!WIFEXITED(wstatus1)) {
-      fprintf(stderr, "Error: subprocess1 crashed, was interrupted, or did not exit normally\n");
-      prop_flag = 1; 
+      fatal("subprocess 1 crashed, was interrupted, or did not exit normally");
+      exit(EXIT_FAILURE);
     }
     if (WEXITSTATUS(wstatus1) != 0) {
-      fprintf(stderr, "Error: subprocess1 returned a non-zero exit code\n"); 
-      prop_flag = 1; 
+      fatal("subprocess 1 returned a non-zero exit code"); 
+      exit(EXIT_FAILURE);
     }
 
-    if (!WIFEXITED(w2status)) {
-      fprintf(stderr, "Error: subprocess2 crashed, was interrupted, or did not exit normally\n");
-      prop_flag = 1; 
+    if (pid_real2 == -1) {
+      fatal("waitpid 2 failed!"); 
+      exit(EXIT_FAILURE);
     }
-    if (WEXITSTATUS(w2status) != 0) {
-      fprintf(stderr, "Error: subprocess2 returned a non-zero exit code\n"); 
-      prop_flag = 1; 
+
+    if (!WIFEXITED(wstatus2)) {
+      fatal("subprocess 2 crashed, was interrupted, or did not exit normally");
+      exit(EXIT_FAILURE);
     }
-  
+    if (WEXITSTATUS(wstatus2) != 0) {
+      fatal("subprocess 2 returned a non-zero exit code"); 
+      exit(EXIT_FAILURE);
+    }
+
+    // allocate temp array now, so we can avoid unnecessary work if the malloc fails
+    int64_t *temp_arr = (int64_t *) malloc(size * sizeof(int64_t));
+    if (temp_arr == NULL) {
+      fatal("malloc() of temp array failed!");
+      exit(EXIT_FAILURE);
+    }
+
+    // child processes completed successfully, so in theory we should be able to merge their results
+    merge(arr, begin, mid, end, temp_arr);
+
+    // copy data back to main array
+    for (size_t i = 0; i < size; i++) {
+      arr[begin + i] = temp_arr[i];
+    }
+
+    // now we can free the temp array
+    free(temp_arr);
+
+    // success!
   }
-
-  if (prop_flag) { //check that no errors occured in child processes
-    fatal("Error: child processes did not proceed properly\n"); 
-    exit(EXIT_FAILURE); 
-  }
-
-  merge_sort(arr, begin, mid, threshold);
-  merge_sort(arr, mid, end, threshold);
-
-  // allocate temp array now, so we can avoid unnecessary work
-  // if the malloc fails
-  int64_t *temp_arr = (int64_t *) malloc(size * sizeof(int64_t));
-  if (temp_arr == NULL) {
-    fatal("malloc() failed");
-  }
-
-  // child processes completed successfully, so in theory
-  // we should be able to merge their results
-  merge(arr, begin, mid, end, temp_arr);
-
-  // copy data back to main array
-  for (size_t i = 0; i < size; i++)
-    arr[begin + i] = temp_arr[i];
-
-  // now we can free the temp array
-  free(temp_arr);
-
-  // success!
 }
 
 int main(int argc, char **argv) {
@@ -212,22 +196,22 @@ int main(int argc, char **argv) {
   size_t threshold = (size_t) strtoul(argv[2], &end, 10);
   if (end != argv[2] + strlen(argv[2])) {
     // report an error (threshold value is invalid)
-    fatal("Error: Threshold value is invalid\n");
+    fatal("threshold value is invalid\n");
   }
 
  // open the file
   int fd = open(filename, O_RDWR);
   if (fd < 0) {
-    // report an error (fle cannot be opened)
-    fatal("Error: file couldn't be opened\n");
+    // report an error (file cannot be opened)
+    fatal("file couldn't be opened\n");
   }
  
-  //use fstat to determine the size of the file
+  // use fstat to determine the size of the file
   struct stat statbuf;
   int rc = fstat(fd, &statbuf);
   if (rc != 0) {
-    //report an error (fstat error)
-    fatal("Error: Bad fstat\n");
+    // report an error (fstat error)
+    fatal("fstat failed on file\n");
   }
 
   size_t file_size_in_bytes = statbuf.st_size;
@@ -235,24 +219,25 @@ int main(int argc, char **argv) {
   // map the file into memory using mmap
   int64_t *data = mmap(NULL, file_size_in_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (data == MAP_FAILED) {
-    fatal("Error: Bad map\n");
+    fatal("bad map\n");
   }
   
-  //sort the data!
-  uint64_t num_el = file_size_in_bytes/8;
-  merge_sort(data, 0, num_el,threshold);
+  // sort the data!
+  uint64_t num_el = file_size_in_bytes/sizeof(int64_t);
+  merge_sort(data, 0, num_el, threshold);
 
-  //unmap and close the file
+  // unmap and close the file
   int um = munmap(data, file_size_in_bytes); 
   if (um != 0) {
-    fatal("Error: could not unmap file\n");
+    fatal("could not unmap file\n");
   }
   
-  //exit with a 0 exit code if sort was successful
+  // exit with a 0 exit code if sort was successful
   int c = close(fd);
   if (c != 0) {
-    fatal("Error: could not close file\n");
+    fatal("could not close file\n");
   }
-  //exit with a 0 exit code if sort was successful
+  
+  // exit with a 0 exit code if sort was successful
   exit(EXIT_SUCCESS);
 }
