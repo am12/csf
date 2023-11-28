@@ -7,16 +7,19 @@
 #include "connection.h"
 #include "client_util.h"
 
+using std::cerr;
+using std::string;
+
 int main(int argc, char **argv) {
   if (argc != 5) {
-    std::cerr << "Usage: ./receiver [server_address] [port] [username] [room]\n";
+    cerr << "Usage: ./receiver [server_address] [port] [username] [room]\n";
     return 1;
   }
 
-  std::string server_hostname = argv[1];
+  string server_hostname = argv[1];
   int server_port = std::stoi(argv[2]);
-  std::string username = argv[3];
-  std::string room_name = argv[4];
+  string username = argv[3];
+  string room_name = argv[4];
 
   Connection conn;
 

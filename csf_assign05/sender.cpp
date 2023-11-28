@@ -7,18 +7,25 @@
 #include "connection.h"
 #include "client_util.h"
 
+using std::cerr;
+using std::cin;
+using std::cout;
+using std::string;
+using std::stoi;
+using std::getline;
+
 int main(int argc, char **argv) {
   if (argc != 4) {
-    std::cerr << "Usage: ./sender [server_address] [port] [username]\n";
+    cerr << "Usage: ./sender [server_address] [port] [username]\n";
     return 1;
   }
 
-  std::string server_hostname;
+  string server_hostname;
   int server_port;
-  std::string username;
+  string username;
 
   server_hostname = argv[1];
-  server_port = std::stoi(argv[2]);
+  server_port = stoi(argv[2]);
   username = argv[3];
 
   // connect to server
@@ -27,28 +34,28 @@ int main(int argc, char **argv) {
 
   // check if connection was successful
   if (!conn.is_open()) {
-    std::cerr << "Connection failed!";
+    cerr << "Sender connection failed";
     return 1;
   }
 
   // send slogin message
   conn.send(Message(TAG_SLOGIN, username));
-  
+
   Message slogin_response = Message();
   conn.receive(slogin_response);
 
   if (slogin_response.tag == TAG_ERR) {
-    std::cerr << slogin_response.data;
+    cerr << slogin_response.data;
     conn.close();
     return 1;
   }
 
   // loop reading commands from user, sending messages to server as appropriate
-  while(1) {
+  while (1) {
 
     Message message;
-    std::string input;
-    std::getline(std::cin, input);
+    string input;
+    getline(cin, input);
 
     if (input.substr(0, 6) == "/join ") {
       message.tag = TAG_JOIN;
@@ -61,7 +68,7 @@ int main(int argc, char **argv) {
       Message quit_response = Message();
       conn.receive(quit_response);
       if (quit_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-        std::cerr << quit_response.data;
+        cerr << quit_response.data;
       }
       break;
     } else {
@@ -72,7 +79,7 @@ int main(int argc, char **argv) {
     Message message_response = Message();
     conn.receive(message_response);
     if (message_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-      std::cerr << message_response.data;
+      cerr << message_response.data;
       continue;
     }
   }
