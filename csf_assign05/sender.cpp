@@ -52,35 +52,39 @@ int main(int argc, char **argv) {
 
   // loop reading commands from user, sending messages to server as appropriate
   while (1) {
+    Message msg;
+    string command;
+    getline(cin, command);
 
-    Message message;
-    string input;
-    getline(cin, input);
+    if (command == "/quit") {
+      msg.tag = TAG_QUIT;
 
-    if (input.substr(0, 6) == "/join ") {
-      message.tag = TAG_JOIN;
-      message.data = input.substr(6);
-    } else if (input == "/leave") {
-      message.tag = TAG_LEAVE;
-    } else if (input == "/quit") {
-      message.tag = TAG_QUIT;
-      conn.send(message);
-      Message quit_response = Message();
+      conn.send(msg);
+      Message quit_response;
       conn.receive(quit_response);
       if (quit_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
         cerr << quit_response.data;
       }
+
       break;
+
+    } else if (command.substr(0, 6) == "/join ") {
+      msg.tag = TAG_JOIN;
+      msg.data = command.substr(6);
+
+    } else if (command == "/leave") {
+      msg.tag = TAG_LEAVE;
+
     } else {
-      message.tag = TAG_SENDALL;
-      message.data = input;
+      msg.tag = TAG_SENDALL;
+      msg.data = command;
     }
-    conn.send(message);
-    Message message_response = Message();
-    conn.receive(message_response);
-    if (message_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-      cerr << message_response.data;
-      continue;
+
+    conn.send(msg);
+    Message response;
+    conn.receive(response);
+    if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
+      cerr << response.data;
     }
   }
 
