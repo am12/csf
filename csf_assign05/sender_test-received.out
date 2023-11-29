@@ -1,4 +1,4 @@
 slogin:alice
 join:partytime
-~#join:cafe
-~#quit:
+join:cafe
+quit:

@@ -9,7 +9,6 @@
 
 using std::cerr;
 using std::cin;
-using std::cout;
 using std::string;
 using std::stoi;
 using std::getline;
@@ -41,7 +40,7 @@ int main(int argc, char **argv) {
   // send slogin message
   conn.send(Message(TAG_SLOGIN, username));
 
-  Message slogin_response = Message();
+  Message slogin_response;
   conn.receive(slogin_response);
 
   if (slogin_response.tag == TAG_ERR) {
@@ -66,7 +65,8 @@ int main(int argc, char **argv) {
         cerr << quit_response.data;
       }
 
-      break;
+      conn.close();
+      return 0;
 
     } else if (command.substr(0, 5) == "/join") {
       msg.tag = TAG_JOIN;

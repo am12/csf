@@ -74,7 +74,6 @@ bool Connection::send(const Message &msg) {
     m_last_result = SUCCESS;
     return true;
   }
-
 }
 
 bool Connection::receive(Message &msg) {
