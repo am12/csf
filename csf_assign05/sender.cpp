@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
   // check if connection was successful
   if (!conn.is_open()) {
-    cerr << "Sender connection failed";
+    cerr << "Sender connection failed\n";
     return 1;
   }
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
       break;
 
-    } else if (command.substr(0, 6) == "/join ") {
+    } else if (command.substr(0, 5) == "/join") {
       msg.tag = TAG_JOIN;
       msg.data = command.substr(6);
 

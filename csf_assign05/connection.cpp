@@ -25,9 +25,12 @@ Connection::Connection(int fd)
 
 void Connection::connect(const std::string &hostname, int port) {
   // call open_clientfd to connect to the server
-  m_fd = open_clientfd((const char *) hostname.c_str(), (const char *) to_string(port).c_str());
+  const char* hostname_str = hostname.c_str();
+  const char* port_str = to_string(port).c_str();
+  m_fd = Open_clientfd(hostname_str, port_str);
+
   if (m_fd < 0) { 
-    cerr << "open_clientfd failed";
+    cerr << "open_clientfd failed\n";
     return;
   } 
 
