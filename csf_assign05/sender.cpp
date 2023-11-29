@@ -63,8 +63,9 @@ int main(int argc, char **argv) {
       conn.receive(quit_response);
       if (quit_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
         cerr << quit_response.data;
+        conn.close();
+        return 1;
       }
-
       conn.close();
       return 0;
 
@@ -85,6 +86,8 @@ int main(int argc, char **argv) {
     conn.receive(response);
     if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
       cerr << response.data;
+      conn.close();
+      return 1;
     }
   }
 

@@ -911,10 +911,13 @@ ssize_t Rio_readn(int fd, void *ptr, size_t nbytes)
     return n;
 }
 
-void Rio_writen(int fd, const void *usrbuf, size_t n) 
+ssize_t Rio_writen(int fd, const void *usrbuf, size_t n) 
 {
-    if (rio_writen(fd, usrbuf, n) != (int)n)
+    ssize_t rc; 
+    if ((rc = rio_writen(fd, usrbuf, n)) != (int)n)
 	unix_error("Rio_writen error");
+
+    return rc;
 }
 
 void Rio_readinitb(rio_t *rp, int fd)

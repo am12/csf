@@ -10,6 +10,8 @@
 using std::cerr;
 using std::string;
 using std::to_string;
+using std::istringstream;
+using std::getline;
 
 Connection::Connection()
   : m_fd(-1)
@@ -20,7 +22,7 @@ Connection::Connection(int fd)
   : m_fd(fd)
   , m_last_result(SUCCESS) {
   // call rio_readinitb to initialize the rio_t object
-  rio_readinitb(&m_fdbuf, m_fd);
+  Rio_readinitb(&m_fdbuf, m_fd);
 }
 
 void Connection::connect(const std::string &hostname, int port) {
@@ -63,17 +65,18 @@ bool Connection::send(const Message &msg) {
   // send a message
   // return true if successful, false if not
   // make sure that m_last_result is set appropriately
-  const char* message = (msg.tag + ":" + msg.data + "\n").c_str();
-  ssize_t result = rio_writen(m_fd, message, strlen(message));
+  string message_cpp = msg.tag + ":" + msg.data + "\n";
+  const char* message = message_cpp.c_str();
+  ssize_t result = Rio_writen(m_fd, message, strlen(message));
 
   // error handling
   if (result < 0) {
     m_last_result = EOF_OR_ERROR;
     return false;
-  } else {
-    m_last_result = SUCCESS;
-    return true;
-  }
+  } 
+
+  m_last_result = SUCCESS;
+  return true;
 }
 
 bool Connection::receive(Message &msg) {
@@ -81,7 +84,7 @@ bool Connection::receive(Message &msg) {
   // return true if successful, false if not
   // make sure that m_last_result is set appropriately
   char buffer[Message::MAX_LEN + 1];
-  ssize_t result = rio_readlineb(&m_fdbuf, buffer, Message::MAX_LEN);
+  ssize_t result = Rio_readlineb(&m_fdbuf, buffer, Message::MAX_LEN);
 
   // error handling
   if (result < 0) { 
@@ -90,10 +93,11 @@ bool Connection::receive(Message &msg) {
   }
 
   // get tag and data from buffer
-  string buffer_string(buffer);
-  size_t colon_pos = buffer_string.find(':');
-  msg.tag = buffer_string.substr(0, colon_pos);
-  msg.data = buffer_string.substr(colon_pos + 1);
+  char* str;
+  str = strtok(buffer, ":");
+  msg.tag = str;
+  str = strtok(NULL, "");
+  msg.data = str;  
 
   // successful exit
   m_last_result = SUCCESS;
