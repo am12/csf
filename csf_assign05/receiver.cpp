@@ -37,25 +37,33 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // send rlogin message
-  conn.send(Message(TAG_RLOGIN, username));
-  
-  Message rlogin_response;
-  conn.receive(rlogin_response);
+  // send slogin message
+  Message rlogin_msg = Message(TAG_RLOGIN, username);
+  if (!conn.send(rlogin_msg)) {
+    cerr << rlogin_msg.data;
+    conn.close();
+    return 1;
+  }
 
-  if (rlogin_response.tag == TAG_ERR) {
+  // wait for response
+  Message rlogin_response;
+  if (!conn.receive(rlogin_response) || rlogin_response.tag == TAG_ERR) {
     cerr << rlogin_response.data;
     conn.close();
     return 1;
   }
 
   // send join room message
-  conn.send(Message(TAG_JOIN, room_name));
+  Message join_msg = Message(TAG_JOIN, room_name);
+  if (!conn.send(join_msg)) {
+    cerr << join_msg.data;
+    conn.close();
+    return 1;
+  }
 
+  // wait for response
   Message join_response;
-  conn.receive(join_response);
-  
-  if (join_response.tag == TAG_ERR) {
+  if (!conn.receive(join_response) || join_response.tag == TAG_ERR) {
     cerr << join_response.data;
     conn.close();
     return 1;
