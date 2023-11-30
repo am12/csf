@@ -32,13 +32,14 @@ void Connection::connect(const std::string &hostname, int port) {
   m_fd = Open_clientfd(hostname_str, port_str);
 
   if (m_fd <= 0) { 
-    cerr << "open_clientfd failed";
     m_last_result = EOF_OR_ERROR;
+    cerr << "Error: " << m_last_result << std::endl;
     return;
   } 
 
   // call rio_readinitb to initialize the rio_t object
   rio_readinitb(&m_fdbuf, m_fd);
+  m_last_result = SUCCESS;
 }
 
 Connection::~Connection() {
@@ -62,6 +63,24 @@ void Connection::close() {
   }
 }
 
+bool Connection::validSend(const Message &msg) {
+  if (msg.tag == TAG_ERR || msg.tag == TAG_OK || msg.tag == TAG_EMPTY || msg.tag == TAG_JOIN ) {
+    return true;
+  } else if (msg.tag == TAG_DELIVERY || msg.tag == TAG_LEAVE || msg.tag == TAG_QUIT) {
+    if (msg.data.find(":")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Connection::validReceive(const Message &msg) {
+  if (msg.data.find(":")){
+    return true;
+  }
+  return false;
+}
+ 
 bool Connection::send(const Message &msg) {
   // send a message
   // return true if successful, false if not
@@ -75,7 +94,7 @@ bool Connection::send(const Message &msg) {
     m_last_result = EOF_OR_ERROR;
     return false;
   } 
-
+  
   m_last_result = SUCCESS;
   return true;
 }
