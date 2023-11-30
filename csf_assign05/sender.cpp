@@ -34,15 +34,9 @@ int main(int argc, char **argv) {
 
   // check if connection was successful
   if (!conn.is_open()) {
-<<<<<<< HEAD
-    cerr << "Sender connection failed";
-    //conn.close();
-    //return 1;
-=======
     cerr << "Sender connection failed\n";
     conn.close();
     return 1;
->>>>>>> c4d3595fca724b6ac72ebef9c061d12b01a17030
   }
 
   // send slogin message
