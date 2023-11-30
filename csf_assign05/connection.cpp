@@ -31,8 +31,9 @@ void Connection::connect(const std::string &hostname, int port) {
   const char* port_str = to_string(port).c_str();
   m_fd = Open_clientfd(hostname_str, port_str);
 
-  if (m_fd < 0) { 
-    cerr << "open_clientfd failed\n";
+  if (m_fd <= 0) { 
+    cerr << "open_clientfd failed";
+    m_last_result = EOF_OR_ERROR;
     return;
   } 
 

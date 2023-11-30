@@ -10,6 +10,7 @@
 
 using std::cerr;
 using std::cout;
+using std::endl;
 using std::stoi;
 using std::string;
 using std::vector;
@@ -33,7 +34,8 @@ int main(int argc, char **argv) {
 
   // check if connection was successful
   if (!conn.is_open()) {
-    cerr << "Receiver connection failed\n";
+    cerr << "Receiver connection failed";
+    conn.close();
     return 1;
   }
 
@@ -79,6 +81,10 @@ int main(int argc, char **argv) {
       string data2 = token;
 
       cout << data1 << ": " << data2;
+    }
+    else if (server_msg.tag == TAG_ERR) {
+      cerr << "Rececived incorrect message: " << server_msg.data;
+      return 1;
     }
   }
 

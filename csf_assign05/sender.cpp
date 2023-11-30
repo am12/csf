@@ -9,6 +9,7 @@
 
 using std::cerr;
 using std::cin;
+using std::endl;
 using std::string;
 using std::stoi;
 using std::getline;
@@ -33,8 +34,9 @@ int main(int argc, char **argv) {
 
   // check if connection was successful
   if (!conn.is_open()) {
-    cerr << "Sender connection failed\n";
-    return 1;
+    cerr << "Sender connection failed";
+    //conn.close();
+    //return 1;
   }
 
   // send slogin message
@@ -86,8 +88,6 @@ int main(int argc, char **argv) {
     conn.receive(response);
     if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
       cerr << response.data;
-      conn.close();
-      return 1;
     }
   }
 
