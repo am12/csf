@@ -84,11 +84,7 @@ int main(int argc, char **argv) {
     } else if (command.substr(0, 5) == "/join") {
       msg.tag = TAG_JOIN;
       msg.data = command.substr(6);
-      if (msg.data = TAG_ERR) {
-        cerr << "Failed to join room"; 
-        conn.close();
-        return 1;
-      }
+  
     } else if (command == "/leave") {
       msg.tag = TAG_LEAVE;
 

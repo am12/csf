@@ -10,7 +10,6 @@
 using std::cerr;
 using std::string;
 using std::to_string;
-using std::istringstream;
 using std::getline;
 
 Connection::Connection()
@@ -64,24 +63,27 @@ void Connection::close() {
 }
 
 bool Connection::validSend(const Message &msg) {
-  if (msg.tag == TAG_ERR || msg.tag == TAG_OK || msg.tag == TAG_EMPTY || msg.tag == TAG_JOIN ) {
+  if (msg.tag != TAG_ERR) {
     return true;
-  } else if (msg.tag == TAG_DELIVERY || msg.tag == TAG_LEAVE || msg.tag == TAG_QUIT) {
-    if (msg.data.find(":")) {
-      return true;
-    }
-  }
+  } else {
   return false;
+  }
 }
 
 bool Connection::validReceive(const Message &msg) {
-  if (msg.data.find(":")){
+  if (msg.data.find(":") != string::npos) {
     return true;
   }
   return false;
 }
  
 bool Connection::send(const Message &msg) {
+  // // check message
+  // if (!validSend(msg)) {
+  //   m_last_result = INVALID_MSG;
+  //   return false;
+  // }
+
   // send a message
   // return true if successful, false if not
   // make sure that m_last_result is set appropriately
@@ -100,6 +102,12 @@ bool Connection::send(const Message &msg) {
 }
 
 bool Connection::receive(Message &msg) {
+  // check message
+  if (!validReceive(msg)) {
+    m_last_result = INVALID_MSG;
+    return false;
+  }
+
   // receive a message, storing its tag and data in msg
   // return true if successful, false if not
   // make sure that m_last_result is set appropriately
@@ -113,11 +121,15 @@ bool Connection::receive(Message &msg) {
   }
 
   // get tag and data from buffer
-  char* str;
-  str = strtok(buffer, ":");
-  msg.tag = str;
-  str = strtok(NULL, "");
-  msg.data = str;  
+  string s(buffer);
+  size_t colon = s.find(":");
+  if (colon == string::npos) {
+    m_last_result = INVALID_MSG;
+    return false;
+  }
+
+  msg.tag = s.substr(0, colon);
+  msg.data = s.substr(colon+1);
 
   // successful exit
   m_last_result = SUCCESS;
