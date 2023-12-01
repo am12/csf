@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <string.h>
+#include "client_util.h"
 #include "csapp.h"
 #include "message.h"
 #include "connection.h"
@@ -62,27 +63,24 @@ void Connection::close() {
   }
 }
 
-bool Connection::validSend(const Message &msg) {
-  if (msg.tag != TAG_ERR) {
-    return true;
-  } else {
-  return false;
-  }
-}
-
-bool Connection::validReceive(const Message &msg) {
-  if (msg.data.find(":") != string::npos) {
+bool Connection::valid_send(const Message &msg) {
+  string tag = msg.tag;
+  if (tag == TAG_DELIVERY) {
+    size_t colon = msg.data.find(':');
+    return colon != std::string::npos;
+  } else if (tag == TAG_OK || tag == TAG_SLOGIN || tag == TAG_RLOGIN || tag == TAG_SENDALL || tag == TAG_JOIN ||
+             tag == TAG_LEAVE || tag == TAG_QUIT || tag == TAG_EMPTY || tag == TAG_ERR) {
     return true;
   }
   return false;
 }
  
 bool Connection::send(const Message &msg) {
-  // // check message
-  // if (!validSend(msg)) {
-  //   m_last_result = INVALID_MSG;
-  //   return false;
-  // }
+  // check message
+  if (!valid_send(msg)) {
+    m_last_result = INVALID_MSG;
+    return false;
+  }
 
   // send a message
   // return true if successful, false if not
@@ -102,12 +100,6 @@ bool Connection::send(const Message &msg) {
 }
 
 bool Connection::receive(Message &msg) {
-  // check message
-  if (!validReceive(msg)) {
-    m_last_result = INVALID_MSG;
-    return false;
-  }
-
   // receive a message, storing its tag and data in msg
   // return true if successful, false if not
   // make sure that m_last_result is set appropriately
@@ -130,6 +122,11 @@ bool Connection::receive(Message &msg) {
 
   msg.tag = s.substr(0, colon);
   msg.data = s.substr(colon+1);
+
+  if (msg.tag == TAG_ERR) {
+    m_last_result = INVALID_MSG;
+    return false;
+  }
 
   // successful exit
   m_last_result = SUCCESS;

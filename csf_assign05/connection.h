@@ -34,9 +34,7 @@ public:
 
   void close();
 
-  bool validSend(const Message &msg);
-
-  bool validReceive(const Message &msg);
+  bool valid_send(const Message &msg);
 
   // send and receive should set m_last_result to indicate
   // whether the most recent send or receive was successful,
