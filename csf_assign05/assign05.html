@@ -1,0 +1,1115 @@
+<!doctype html>
+
+<html>
+
+<head>
+  <title>601.229 (F23): Assignment 5: Chat Server</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fall2023/css/csf.css">
+  <link rel="stylesheet" type="text/css" href="/fall2023/css/syntax.css">
+  <link rel="shortcut icon" href="/fall2023/img/favicon.png">
+  <script type="text/javascript" src="/fall2023/js/csf.js"></script>
+</head>
+
+<body>
+  <div id="content">
+    <ul id="navbar">
+      <li><span class="csf">CSF@JHU</span></li>
+      <li id="navbar_home"><a href="/fall2023/index.html">Home</a></li>
+      <li id="navbar_syllabus"><a href="/fall2023/syllabus.html">Syllabus</a></li>
+      <li id="navbar_schedule"><a href="/fall2023/schedule.html">Schedule</a></li>
+      <li id="navbar_assignments"><a href="/fall2023/assignments.html">Assignments</a></li>
+      <li id="navbar_resources"><a href="/fall2023/resources.html">Resources</a></li>
+    </ul>
+    <div style="clear: both;"></div>
+
+    <hr id="headerSep">
+
+    <div id="pageTitle">601.229 (F23): Assignment 5: Chat Server</div>
+
+    <p><em>Note</em>: Assignment 5 is a double assignment. Each milestone (MS1 and MS2)
+is worth 1/6 of the assignments grade for the course, the same as
+(individually) Assignments 1–4.</p>
+
+<p><strong>Due:</strong></p>
+
+<ul>
+  <li>Milestone 1 due <strike><b>Wed Nov 29th</b></strike> <strong>Thurs Nov 30th</strong> by 11pm</li>
+  <li>Milestone 2 due <strong>Fri Dec 8th</strong> by 11pm</li>
+</ul>
+
+<p>You may use your late hours as usual on each milestone. Please let us know
+if you are planning to use more than 48 late hours on a milestone.</p>
+
+<p><em>Update 11/29</em>: Extended MS1 due date by 1 day because the
+<a href="#automated-testing">automated testing scripts</a> for the
+client programs had an incompatibility with the version of <code class="language-plaintext highlighter-rouge">nc</code> (netcat)
+currently installed on the ugrad systems. You can download them
+again to get the fixed versions.</p>
+
+<h2 id="grading-criteria">Grading Criteria</h2>
+
+<p>Milestone 1:</p>
+
+<ul>
+  <li>Implementation of sender client: 22.5%</li>
+  <li>Implementation of receiver client 22.5%</li>
+  <li>Design and coding style: 5%</li>
+</ul>
+
+<p>Milestone 2:</p>
+
+<ul>
+  <li>Implementation of server: 30%</li>
+  <li>Report explaining thread synchronization in server: 15%</li>
+  <li>Design and coding style: 5%</li>
+</ul>
+
+<h2 id="table-of-contents">Table of contents</h2>
+
+<ul>
+  <li><a href="#overview">Overview</a></li>
+  <li><a href="#goals-of-the-assignment">Goals of the assignment</a></li>
+  <li><a href="#demo">Demo</a></li>
+  <li><a href="#the-protocol">The protocol</a> - <strong>Important:</strong> You <em>must</em> read this before starting the assignment!</li>
+  <li><a href="#assignment-skeleton">Assignment skeleton</a></li>
+  <li><a href="#milestone-1-the-clients">Milestone 1: The clients</a>
+    <ul>
+      <li><a href="#receiver">Receiver</a></li>
+      <li><a href="#sender">Sender</a></li>
+      <li><a href="#error-handling">Error handling</a></li>
+      <li><a href="#implementation-tips">Implementation tips</a></li>
+      <li><a href="#testing">Testing</a> - <em>This is an important section!</em></li>
+      <li><a href="#automated-testing">Automated testing</a> - <em>Do not attempt automated testing until you have thoroughly manually tested your programs.</em></li>
+    </ul>
+  </li>
+  <li><a href="#milestone-2-the-server">Milestone 2: The server</a>
+    <ul>
+      <li><a href="#tasks">Tasks</a></li>
+      <li><a href="#using-threads-for-client-connections">Using threads for client connections</a></li>
+      <li><a href="#receiver-and-sender-loops">Receiver and sender loops</a></li>
+      <li><a href="#broadcasting-messages-to-receivers">Broadcasting messages to receivers</a></li>
+      <li><a href="#synchronizing-shared-data">Synchronizing shared data</a>
+        <ul>
+          <li><a href="#guard-locks">Guard locks</a></li>
+          <li><a href="#synchronization-report">Synchronization report</a></li>
+        </ul>
+      </li>
+      <li><a href="#error-handling">Error handling</a></li>
+      <li><a href="#implementation-tips">Implementation tips</a></li>
+      <li><a href="#testing">Testing</a>
+        <ul>
+          <li><a href="#manual-testing">Manual testing</a></li>
+          <li><a href="#automated-testing-1">Automated testing</a> - <em>Do not attempt automated testing until you have thoroughly manually tested your program.</em></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#reference">Reference</a></li>
+  <li><a href="#submitting">Submitting</a></li>
+</ul>
+
+<h2 id="overview">Overview</h2>
+
+<p>Download <a href="/fall2023/assign/csf_assign05.zip">csf_assign05.zip</a> and unzip it.</p>
+
+<p>In this assignment, you will develop a chat client program that communicates
+synchronously with a server in real-time. You may think of this as an
+implementation inspired by classical chat systems such as IRC.</p>
+
+<p><strong>Note:</strong> We highly recommend that you use C++ for this assignment.
+The provided skeleton code includes partially implemented classes which
+we encourage you to use as the basis for your client and server implementations.</p>
+
+<h2 id="goals-of-the-assignment">Goals of the assignment</h2>
+
+<p>The main goal of the assignment is to provide an opportunity to create a
+network application.</p>
+
+<p>Although this will be a relatively simple program, it is representative of a
+larger class of network-enabled systems:</p>
+
+<ul>
+  <li>It will have a protocol for communication between clients and server</li>
+  <li>it will allow communication over a network (specifically by accepting TCP
+  connections from clients)</li>
+  <li>It will use concurrency and synchronization primitives to coordinate access to
+  shared data on a remote server</li>
+</ul>
+
+<h2 id="demo">Demo</h2>
+
+<p>Here is an example chat session with two different senders and three receivers, all
+connected to the same server:</p>
+
+<!-- Widget loads here -->
+<div id="demo-widget"></div>
+
+<p>(thanks <a href="https://asciinema.org/">asciinema</a> for the wonderful terminal recording
+widget!)</p>
+
+<!-- Load the Asciinema Widget -->
+<script src="/fall2023/js/asciinema-player.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/fall2023/css/asciinema-player.css" />
+
+<script>
+  AsciinemaPlayer.create('assign05/demo.cast', document.getElementById('demo-widget'), {
+  speed: 2,
+  idleTimeLimit: 2,
+  poster: 'npt:0:32'
+  });
+</script>
+
+<h2 id="the-protocol">The Protocol</h2>
+
+<p>The client and server communicate by exchanging a series of <em>messages</em> over a
+TCP connection. There are two kinds of clients: a <em>receiver</em> which is used to
+only read messages from the server, and a <em>sender</em> that is used to send messages
+to the server. To allow multiple groups of people to talk independently, the
+server partitions clients into “rooms”. All receivers in the same room
+will receive that same set of message, and all senders in the same room will
+broadcast to the same receivers.</p>
+
+<p>A <em>message</em> is an ASCII-encoded transmission with the following format:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>tag:payload
+</code></pre></div></div>
+
+<p>A <em>message</em> is subject to the following restrictions:</p>
+
+<ul>
+  <li>A message must be a single line of text with no newline characters contained within
+  it.</li>
+  <li>A message ends at a newline terminator which can be either <code class="language-plaintext highlighter-rouge">"\n"</code> or <code class="language-plaintext highlighter-rouge">"\r\n"</code>.
+  Your programs must be able to accept both of these as newline delimiters.</li>
+  <li>The <code class="language-plaintext highlighter-rouge">tag</code> must be one of the operations specified in the “tag
+  table”.</li>
+  <li>The payload is an arbitrary sequence of characters. If a tag has a structured
+  payload, the payload must be formatted exactly as specified.</li>
+  <li>If a tag has a payload that is ignored (e.g., the “quit” and “leave” tags),
+the tag/payload separator character <code class="language-plaintext highlighter-rouge">:</code> must still be present (e.g. <code class="language-plaintext highlighter-rouge">quit:</code> not <code class="language-plaintext highlighter-rouge">quit</code>),
+even if the payload is empty</li>
+  <li>An encoded message must not be more than <code class="language-plaintext highlighter-rouge">MAX_LEN</code> bytes.</li>
+</ul>
+
+<p>The first message sent to the server by a client is considered a login message,
+and must have one of the following tags:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">slogin</code></li>
+  <li><code class="language-plaintext highlighter-rouge">rlogin</code></li>
+</ul>
+
+<p>These commands allow the client to log in to the server with the specified
+usernames. <code class="language-plaintext highlighter-rouge">slogin</code> is for a sender, and <code class="language-plaintext highlighter-rouge">rlogin</code> is for a receiver. A receiver
+terminates its connection by simply closing its socket. The server will
+automatically detect when this happens by looking a send failure on the next
+message sent to the client.</p>
+
+<p>If a client logs in with <code class="language-plaintext highlighter-rouge">slogin</code>, from that point forwards, it is a synchronous
+protocol. The client sends a message, and the server sends a response,
+indicating the status of the request.</p>
+
+<p>The following message types are defined:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Tag</th>
+      <th>Sent by</th>
+      <th>Payload content/format</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>err</td>
+      <td>server</td>
+      <td>message_text</td>
+      <td>client’s request was not carried out.</td>
+    </tr>
+    <tr>
+      <td>ok</td>
+      <td>server</td>
+      <td>message_text</td>
+      <td>client’s request ran to completion.</td>
+    </tr>
+    <tr>
+      <td>delivery</td>
+      <td>server</td>
+      <td>room:sender:message_text</td>
+      <td>a delivery of a received message to a receiver.</td>
+    </tr>
+    <tr>
+      <td>slogin</td>
+      <td>sender</td>
+      <td>username</td>
+      <td>log in as sender.</td>
+    </tr>
+    <tr>
+      <td>rlogin</td>
+      <td>receiver</td>
+      <td>username</td>
+      <td>log in as receiver.</td>
+    </tr>
+    <tr>
+      <td>join</td>
+      <td>sender/receiver</td>
+      <td>room_name</td>
+      <td>client wants to join specified room (which will be created as necessary). Client leaves the current room if applicable.</td>
+    </tr>
+    <tr>
+      <td>leave</td>
+      <td>sender</td>
+      <td>[ignored]</td>
+      <td>the sender sends this command to leave the chat room they are currently in</td>
+    </tr>
+    <tr>
+      <td>sendall</td>
+      <td>sender</td>
+      <td>message_text</td>
+      <td>send a message to all users in room</td>
+    </tr>
+    <tr>
+      <td>quit</td>
+      <td>sender</td>
+      <td>[ignored]</td>
+      <td>client is done, server will close the connection.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>You may have the following assumptions about the usernames and room
+names we test your programs on:</p>
+
+<ul>
+  <li>They will be at least one character in length</li>
+  <li>They will contain only letters (<code class="language-plaintext highlighter-rouge">a</code>-<code class="language-plaintext highlighter-rouge">z</code> or <code class="language-plaintext highlighter-rouge">A</code>-<code class="language-plaintext highlighter-rouge">Z</code>) or digits (<code class="language-plaintext highlighter-rouge">0</code>-<code class="language-plaintext highlighter-rouge">9</code>)</li>
+</ul>
+
+<p>The reference server implementation will reject operations in which the username
+and/or room name do not meet these criteria.</p>
+
+<h2 id="assignment-skeleton">Assignment skeleton</h2>
+
+<p>We have included a reasonably comprehensive assignment skeleton in the starter
+code to help you factor your design into manageable parts. You are free to change
+any part of the design, up to and including writing your assignment from
+scratch, so long as your program follows all semantics of the reference
+executables.</p>
+
+<p>If you elect to change the skeleton code or the Makefile, ensure that you build
+executables with the sames names. Exercise extreme caution if you change our
+synchronization architecture to avoid introducing issues.</p>
+
+<p>Here is a description of the files included in the starter code:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">client_util.{h,cpp}</code> - contain utility functions that are shared between the
+  send client and receive client.</li>
+  <li><code class="language-plaintext highlighter-rouge">connection.{h,cpp}</code> - class describing a connection between a client and
+  server. Used by both the receiver, the sender, and the server.</li>
+  <li><code class="language-plaintext highlighter-rouge">csapp.{h,c}</code> - functions from the CS:APP3e book. You are free to modify
+  functions here as needed, e.g. adding const qualifiers for const
+  correctness, but be careful if you don’t completely understand the function
+  you’re changing!</li>
+  <li><code class="language-plaintext highlighter-rouge">guard.h</code> - RAII style block-scoped lock. Creating the object acquires the
+  lock, destroying the object (i.e. when it goes out of scope) releases the
+  lock.</li>
+  <li><code class="language-plaintext highlighter-rouge">message.h</code> - class representing the protocol message format.</li>
+  <li><code class="language-plaintext highlighter-rouge">receiver.cpp</code> - contains the main function for the receiver.</li>
+  <li><code class="language-plaintext highlighter-rouge">room.{cpp,h}</code> - room class used by the server.</li>
+  <li><code class="language-plaintext highlighter-rouge">sender.cpp</code> - contains the main function used by the sender.</li>
+  <li><code class="language-plaintext highlighter-rouge">server.{cpp,h}</code> - server class that tracks and aggregates the entire chat
+  server’s state. Highly recommended that you follow the sketch presented here.</li>
+  <li><code class="language-plaintext highlighter-rouge">server_main.cpp</code> - Contains the main function for the server. If you
+  implement <code class="language-plaintext highlighter-rouge">server.cpp</code> correctly above, you should not need to make changes
+  to this file.</li>
+</ul>
+
+<h2 id="milestone-1-the-clients">Milestone 1: The clients</h2>
+
+<p>For the first part of this assignment, you will be responsible for implementing
+the <em>receiver</em> and the <em>sender</em> to communicate with a server binary included in
+the starter code. Note that the following messages are considered unused and do
+not need to be handled by any client:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">senduser</code></li>
+</ul>
+
+<h3 id="receiver">Receiver</h3>
+
+<p>The receiver will be run in the following manner from the terminal:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./receiver [server_address] [port] [username] [room]
+</code></pre></div></div>
+
+<p>The receiver must send the <code class="language-plaintext highlighter-rouge">rlogin</code> message as its first message to the server.
+The following sequence diagram has been provided for your reference (note that
+this only covers the “happy case”):</p>
+
+<p><img src="/fall2023/assign/assign05/a5_receiver_flow.png" alt="Receiver communication flow diagram" /></p>
+
+<p>The receiver should print received messages to <code class="language-plaintext highlighter-rouge">stdout</code> in the following format:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[username of sender]: [message text]
+</code></pre></div></div>
+
+<p>The following messages must be handled:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">rlogin</code></li>
+  <li><code class="language-plaintext highlighter-rouge">join</code></li>
+  <li><code class="language-plaintext highlighter-rouge">delivery</code></li>
+  <li><code class="language-plaintext highlighter-rouge">ok</code></li>
+  <li><code class="language-plaintext highlighter-rouge">err</code></li>
+</ul>
+
+<p>If the server returns <code class="language-plaintext highlighter-rouge">err</code> for either the <code class="language-plaintext highlighter-rouge">rlogin</code> or <code class="language-plaintext highlighter-rouge">join</code> message, the
+receiver must print the error payload to <code class="language-plaintext highlighter-rouge">stderr</code>/<code class="language-plaintext highlighter-rouge">cerr</code> and exit with a
+non-zero exit code. The receiver does not need to exit cleanly, we expect it to
+terminate it by sending it a <code class="language-plaintext highlighter-rouge">SIGINT</code> (a.k.a. <code class="language-plaintext highlighter-rouge">&lt;ctrl&gt;+c</code>).</p>
+
+<h3 id="sender">Sender</h3>
+
+<p>Run the sender using the following command:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./sender [server_address] [port] [username]
+</code></pre></div></div>
+
+<p>The sender must send the <code class="language-plaintext highlighter-rouge">slogin</code> message as its first message to the server.
+The following communication flow has been provided for your reference (note that
+this only covers the “happy case”):</p>
+
+<p><img src="/fall2023/assign/assign05/a5_sender_flow_edit.png" alt="Sender communication flow diagram" /></p>
+
+<p>The following messages must be handled:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">slogin</code></li>
+  <li><code class="language-plaintext highlighter-rouge">join</code></li>
+  <li><code class="language-plaintext highlighter-rouge">sendall</code></li>
+  <li><code class="language-plaintext highlighter-rouge">leave</code></li>
+  <li><code class="language-plaintext highlighter-rouge">ok</code></li>
+  <li><code class="language-plaintext highlighter-rouge">err</code></li>
+</ul>
+
+<p>After the sender logs into the server, it should read <code class="language-plaintext highlighter-rouge">stdin</code> for messages and
+commands. Commands start with the <code class="language-plaintext highlighter-rouge">/</code> character and may be one of the following:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">/join [room name]</code> - joins the specified room on the server using a <code class="language-plaintext highlighter-rouge">join</code>
+  message</li>
+  <li><code class="language-plaintext highlighter-rouge">/leave</code> - leaves the current room, stopping all message delivery using a
+  <code class="language-plaintext highlighter-rouge">leave</code> message.</li>
+  <li><code class="language-plaintext highlighter-rouge">/quit</code> - Instructs the server to disconnect the current send client using a
+  <code class="language-plaintext highlighter-rouge">quit</code> message.</li>
+  <li>All other commands should be rejected with an error message printed to
+  <code class="language-plaintext highlighter-rouge">stderr</code>/<code class="language-plaintext highlighter-rouge">cerr</code></li>
+</ul>
+
+<p>You may assume that all command arguments are valid if the command matches a
+recognized command.</p>
+
+<p>The client must listen for a response from the server after sending each message
+(synchronous protocol). It is okay to stop reading user input during this time. If the
+server returns <code class="language-plaintext highlighter-rouge">err</code> in response to the <code class="language-plaintext highlighter-rouge">slogin</code> request, the sender should print the
+error payload to <code class="language-plaintext highlighter-rouge">stderr</code>/<code class="language-plaintext highlighter-rouge">cerr</code> and exit with a non-zero exit code. If the server returns
+<code class="language-plaintext highlighter-rouge">err</code> for any other request, the sender should print the error payload to <code class="language-plaintext highlighter-rouge">stderr</code>/<code class="language-plaintext highlighter-rouge">cerr</code>
+and continue processing user input.</p>
+
+<p>If the <code class="language-plaintext highlighter-rouge">quit</code> commend is issued, the sender must wait for a reply from the
+server before exiting with exit code 0.</p>
+
+<h3 id="error-handling">Error Handling</h3>
+
+<p>The following diagram summarizes how errors should be handled:</p>
+
+<p><img src="/fall2023/assign/assign05/a5_error_flow.png" alt="Error communication flow diagram" /></p>
+
+<p>Each error message must be exactly one line of text printed to <code class="language-plaintext highlighter-rouge">stderr</code>/<code class="language-plaintext highlighter-rouge">cerr</code>. The error
+text printed must be exactly the payload returned from the server in the <code class="language-plaintext highlighter-rouge">err</code> message.
+You may assume that this payload will always be correctly formatted. For client-side
+errors, you may choose any error string.</p>
+
+<p>You must handle failures to open the TCP communication socket by printing an
+informative error message and exiting with a non-zero exit code. You may assume
+that the server will stay online for the entire duration of the chat session.</p>
+
+<p>If a client is run with an invalid number of arguments, a descriptive usage
+message should be printed to <code class="language-plaintext highlighter-rouge">stderr</code> indicating how the program should be invoked.</p>
+
+<h3 id="implementation-tips">Implementation Tips</h3>
+
+<p>You are free to use any functions in the provided <code class="language-plaintext highlighter-rouge">csapp.h</code> header. In particular, we
+recommend that you use the <code class="language-plaintext highlighter-rouge">rio_*</code> family of functions for writing to the TCP socket file
+descriptors instead of using the raw syscalls. TCP connections have significant latency
+that requires reads and writes to be buffered correctly for expected behaviour. Remember
+that <code class="language-plaintext highlighter-rouge">rio_readlineb</code> does not strip the newline characters.</p>
+
+<p>To open the client connection to the server, we recommend using the
+<code class="language-plaintext highlighter-rouge">int open_clientfd(char* hostname, char* port)</code> function. This function accepts
+a hostname (server address) as a string and the desired port as a string, and
+returns a file descriptor that is ready for use with the <code class="language-plaintext highlighter-rouge">rio_*</code> family of
+functions.</p>
+
+<h3 id="testing">Testing</h3>
+
+<p>To aid your testing your program, we have provided a sample server implementation as a
+Linux binary in the starter code (see the <a href="#reference-implementation">Reference implementation</a>
+section below.) We have intentionally compiled it without
+debugging information and stripped it of symbols. If your clients are
+implemented correctly, you should be able to type in a message and see the
+message appear on all read clients in the same chat-room. You may run our
+server binary using the following command:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./reference/ref-server [port number]
+</code></pre></div></div>
+
+<p>where <code class="language-plaintext highlighter-rouge">[port number]</code> is any integer greater than 1024. If the server fails to
+open on the given port, try another one. You must specify the same port between
+all clients and the server.</p>
+
+<p>Note that you might need to set execute permission on the executable before
+running it:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>chmod a+x reference/ref-server
+</code></pre></div></div>
+
+<p>We have only tested the binary on the Ugrad systems, and do not guarantee that it
+will work anywhere else. It definitely will not work on Mac computers, but may
+work on certain versions of WSL2.</p>
+
+<p>You can also test one client at a time by using netcat as follows:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>nc localhost [portnumber]
+</code></pre></div></div>
+
+<p>You can also spawn a netcat “server” using the following commands:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>nc -l &lt;port&gt;
+</code></pre></div></div>
+
+<p>where port is a number greater or equal to 1024. You would then type in the server
+responses yourself in the netcat terminal window after you get a client connected
+to the “server” following the sequence diagrams above.</p>
+
+<p>You can then pretend to be a receiver by sending a <code class="language-plaintext highlighter-rouge">rlogin</code> request:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rlogin:alice
+join:cafe
+sendall:Message for everyone!
+</code></pre></div></div>
+
+<p>Or you can pretend to be a sender by sending a <code class="language-plaintext highlighter-rouge">slogin</code> request:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>slogin:bob
+join:cafe
+&lt;messages will appear here as they are sent to the room "cafe"&gt;
+</code></pre></div></div>
+
+<p>Do not Valgrind <code class="language-plaintext highlighter-rouge">netcat</code> as that will not be testing your program, and may
+generate false positives. You should ensure that you run Valgrind directly on the
+client executables (e.g. <code class="language-plaintext highlighter-rouge">valgrind ./receiver ...</code>).</p>
+
+<p>We have recorded a screencast which demonstrates several testing scenarios
+using combinations of the reference server, your clients, your server,
+and netcat:</p>
+
+<blockquote>
+  <p><a href="https://jh.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=3d9460a0-eca0-487b-8609-ae7f01050601">https://jh.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=3d9460a0-eca0-487b-8609-ae7f01050601</a></p>
+</blockquote>
+
+<p>We also have a recording of a terminal session where we demonstrate some of these
+manual testing workflows:</p>
+
+<div id="client-test-widget"></div>
+<script>
+  AsciinemaPlayer.create('assign05/client_test.cast', document.getElementById('client-test-widget'), {
+  speed: 2.5,
+  idleTimeLimit: 2,
+  poster: 'npt:0:32'
+  });
+</script>
+
+<h4 id="automated-testing">Automated testing</h4>
+
+<p>You can obtain the automated test scripts here:</p>
+
+<ul>
+  <li><a href="/fall2023/assign/assign05/test_receiver.sh">test_receiver.sh</a></li>
+  <li><a href="/fall2023/assign/assign05/test_sender.sh">test_sender.sh</a></li>
+</ul>
+
+<p>Download them on in the terminal using <code class="language-plaintext highlighter-rouge">wget [link]</code> while you
+are in the same directory your project is in. Don’t forget to make them
+executable after downloading them using <code class="language-plaintext highlighter-rouge">chmod u+x [file]</code>.</p>
+
+<p><code class="language-plaintext highlighter-rouge">test_receiver.sh</code> is invoked as follows:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_receiver.sh [port] [sender_client] [room] [server_in_file] [output_stem]
+</code></pre></div></div>
+
+<p>and <code class="language-plaintext highlighter-rouge">test_sender.sh</code> is invoked as follows:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_sender.sh [port] [sender_client] [client_in_file] [server_in_file] [output_stem]
+</code></pre></div></div>
+
+<p>Note that <code class="language-plaintext highlighter-rouge">test_sender.sh</code> exits with the exit code the client exited with, so you
+can verify that your client exited with the correct exit code by running <code class="language-plaintext highlighter-rouge">echo
+$?</code> <strong>immediately</strong> after running the test script.</p>
+
+<p>The arguments are:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">port</code> - port to run server on. Pick anything above 1024.</li>
+  <li><code class="language-plaintext highlighter-rouge">*_client</code> - name of the client binary to run.</li>
+  <li><code class="language-plaintext highlighter-rouge">room</code> - room to connect the sender to.</li>
+  <li><code class="language-plaintext highlighter-rouge">server_in_file</code> - file containing list of messages server should send, one
+  message per line</li>
+  <li><code class="language-plaintext highlighter-rouge">client_in_file</code> - file containing list of user inputs to the client, one per line.</li>
+  <li><code class="language-plaintext highlighter-rouge">output_stem</code> - base filename for the output, the files
+ <code class="language-plaintext highlighter-rouge">[output_stem]-received.out</code>, <code class="language-plaintext highlighter-rouge">[output_stem]-client.out</code>,
+ <code class="language-plaintext highlighter-rouge">[output_stem]-client.err</code> will be created which correspond to the messages
+ sent by the client to the server, the output the client printed to <code class="language-plaintext highlighter-rouge">stdout</code>, and the
+ output the client printed to <code class="language-plaintext highlighter-rouge">stderr</code> respectively.</li>
+</ul>
+
+<p>While we highly encourage you to come up with your own test inputs, we have
+provided the following test inputs for reference:</p>
+
+<ul>
+  <li><a href="/fall2023/assign/assign05/test_receiver_server.in">test_receiver_server.in</a></li>
+  <li><a href="/fall2023/assign/assign05/test_sender_server.in">test_sender_server.in</a></li>
+  <li><a href="/fall2023/assign/assign05/test_sender_client.in">test_sender_client.in</a></li>
+</ul>
+
+<p>You can run the example receiver test using:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_receiver.sh 12345 receiver partytime test_receiver_server.in receiver_test
+</code></pre></div></div>
+
+<p>and you should verify that <code class="language-plaintext highlighter-rouge">receiver_test-client.err</code> is empty, that
+<code class="language-plaintext highlighter-rouge">receiver_test-client.out</code> contains exactly:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bob: hi alice
+robert_de_bobert: I have the cookies.
+bob: cookies?
+</code></pre></div></div>
+
+<p>and that <code class="language-plaintext highlighter-rouge">receiver_test-received</code> contains exactly:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rlogin:alice
+join:partytime
+</code></pre></div></div>
+
+<p>You can run the example sender test using:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_sender.sh 12346 sender test_sender_client.in test_sender_server.in sender_test
+</code></pre></div></div>
+
+<p>and you should verify that <code class="language-plaintext highlighter-rouge">sender_test-client.err</code> is empty, and that
+<code class="language-plaintext highlighter-rouge">sender_test-received</code> contains exactly:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>slogin:alice
+join:partytime
+sendall:Hello World!
+join:cafe
+sendall:get me 1 coffee
+quit:bye
+</code></pre></div></div>
+
+<p>With the exception of the payload to <code class="language-plaintext highlighter-rouge">quit</code> (it can be any text).</p>
+
+<h2 id="milestone-2-the-server">Milestone 2: The server</h2>
+
+<p>For this part of the assignment, you will be responsible for implementing the
+<em>server</em>. The server is responsible for accepting messages from <em>senders</em> and
+broadcasting them to all <em>receivers</em> in the same room.</p>
+
+<p>The server can be run using the following command:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./server [port]
+</code></pre></div></div>
+
+<p>where <code class="language-plaintext highlighter-rouge">[port]</code> specifies the port that the server should listen on.</p>
+
+<h3 id="tasks">Tasks</h3>
+
+<p>Here is a suggested order of implementation:</p>
+
+<ul>
+  <li>Create a thread for each client connection. You will need a datastructure to
+represent the data associated with each client. We recommend that you use the same
+<code class="language-plaintext highlighter-rouge">Connection</code> class you used in part 1 to represent these connections. You
+may use the login message to determine what kind of client is trying to
+connect.</li>
+  <li>Process <em>control messages</em> from clients.</li>
+  <li>Broadcast messages to all receivers in a room when a sender sends a message. At this
+point your server should work with well-behaving clients that don’t send messages
+at the same time.</li>
+  <li>Add synchronization for access to share data structures (<code class="language-plaintext highlighter-rouge">Room</code>s, <code class="language-plaintext highlighter-rouge">Server</code>) so
+no messages are lost, even if a receiver leaves or tries to join in the middle of a
+broadcast. You also must not lose messages that are sent at the same time
+from two different senders.</li>
+</ul>
+
+<h3 id="using-threads-for-client-connections">Using threads for client connections</h3>
+
+<p>Your server applications will to handle connections from multiple clients simultaneously
+in order to be useful (after all, it is quite sad to only be able to chat with oneself).
+Threads are a useful mechanism for handling multiple client connections because they allow
+the code that communicates with each client to run concurrently.</p>
+
+<p>In your main server loop (<code class="language-plaintext highlighter-rouge">Server::handle_client_requests()</code> if you are following our
+scaffolding), you should create a thread for each accepted client connection using
+<code class="language-plaintext highlighter-rouge">pthread_create()</code>. A struct should be created to pass the <code class="language-plaintext highlighter-rouge">Connection</code> object and other
+required data to the client thread using the <code class="language-plaintext highlighter-rouge">aux</code> parameter of <code class="language-plaintext highlighter-rouge">pthread_create()</code>, and
+<code class="language-plaintext highlighter-rouge">worker()</code> should be used as the entrypoint for the thread. It may also be a good idea to
+create a <code class="language-plaintext highlighter-rouge">User</code> object in each client thread to track the pending messages, and register it
+to a <code class="language-plaintext highlighter-rouge">Room</code> when the client sends a join request.</p>
+
+<p>You can test that your server handles more than one connection correctly by
+spawning multiple receivers and senders on the same server, and checking that
+the messages sent from all senders get correctly delivered to all receivers.</p>
+
+<h3 id="receiver-and-sender-loops">Receiver and sender loops</h3>
+
+<p>We recommend that you separate the communication loops for the senders and receivers into
+the <code class="language-plaintext highlighter-rouge">chat_with_sender()</code> and <code class="language-plaintext highlighter-rouge">chat_with_receiver()</code> functions respectively. Please refer
+to the sequence diagrams in Part 1 to determine how the loops should be implemented.</p>
+
+<p>We have already handled the <code class="language-plaintext highlighter-rouge">SIGPIPE</code> signal for you in our provided server main
+function, so you should be able to detect partial reads by matching the return
+value of <code class="language-plaintext highlighter-rouge">rio_*</code> against the size of the message transmitted. If they do not
+match, you may assume that a transmission error has occurred and should handle it as an
+<a href="#error-handling">error</a>.</p>
+
+<p>For all synchronous messages, you must ensure that the server always transmits
+some kind of response (<code class="language-plaintext highlighter-rouge">err</code> for error, <code class="language-plaintext highlighter-rouge">ok</code> for success) to receive full
+credit. Failure to transmit a response to a synchronous message will cause the client to hang.</p>
+
+<p>In the receiver loop, you must terminate the loop and tear down the client thread if any
+message transmission fails, or if a valid <code class="language-plaintext highlighter-rouge">quit</code> message is received. For the sender loop,
+you must terminate the loop and tear down the client thread if any message fails to send,
+as there is no other way to detect a client disconnect. Be sure that you clean up any
+datastructures and entries specific to the client before terminating the thread to prevent
+resource leaks.</p>
+
+<h3 id="broadcasting-messages-to-receivers">Broadcasting messages to receivers</h3>
+
+<p>We recommend that you implement the pub/sub pattern for synchronization, using the
+<code class="language-plaintext highlighter-rouge">MessageQueue</code> class we outlined for you. In this pattern, a sending thread iterates
+through all the <code class="language-plaintext highlighter-rouge">User</code>s in a room and pushes a message into each <code class="language-plaintext highlighter-rouge">MessageQueue</code>. This
+event wakes up the receiver thread, allowing it to dequeue the messages at its leisure.
+Here is a diagram of how this could work:</p>
+
+<p><img src="/fall2023/assign/assign05/a5_room_broadcast.png" alt="Room broadcast" /></p>
+
+<p>Queues are a useful paradigm because they allow messages to be processed at a different
+rate than we they are transmitted . If we had to wait for all messages to finish sending
+before releasing the lock on the room, we could end up spending all of our time servicing
+send requests, which would deadlock the server.</p>
+
+<p>To implement this “notification” behaviour, we recommend that you use a
+combination of a semaphore and a lock. The lock ensures that the message queue
+can only be modified by one thread at a time, and the semaphore is used to
+“notify” the other end that a new message is available. Recall that a semaphore
+blocks a thread when it goes below zero, and can be incremented (<code class="language-plaintext highlighter-rouge">sem_post</code>) and
+decremented (<code class="language-plaintext highlighter-rouge">sem_wait</code>, <code class="language-plaintext highlighter-rouge">sem_timedwait</code>) from different threads. Thus, we can
+essentially use the semaphore in each <code class="language-plaintext highlighter-rouge">MessageQueue</code> as a sort of “smart”
+counter of the available messages in the queue. This implements the correct
+behaviour: if there are no messages available, we want the receiver to sleep until
+there are available messages, and each time a message is sent, it reduces the
+available messages by one.</p>
+
+<p>The sender client thread may return a response to the sender as soon as the
+message is done being added to all MessageQueues. It does not need to wait until
+the message has actually been delivered to all of the receivers in the room, but
+it should not return a status until the message is done being enqueued.</p>
+
+<p><strong>Important:</strong> Remember that stack allocated data is <em>thread local</em> and must not be shared
+between threads. Since the <code class="language-plaintext highlighter-rouge">MessageQueue</code> is being used as an inter-thread communication
+primitive, you must ensure that messages pushed to the queue are always heap-allocated
+(e.g. allocated using <code class="language-plaintext highlighter-rouge">new</code>). Likewise, ensure that the dequeuing thread takes
+responsibility for freeing the memory. Finally, don’t forget to empty the queue (i.e. free
+all queued messages) when the queue is destroyed to prevent memory leaks when a <em>receiver</em>
+disconnects before all messages could be delivered to it (consider where this happens
+carefully to implement the correct synchronization).</p>
+
+<p>Note: While we recommend <code class="language-plaintext highlighter-rouge">sem_timedwait()</code> in the starter code, <code class="language-plaintext highlighter-rouge">sem_wait()</code> is also
+acceptable for simplicity (i.e. you may safely ignore <code class="language-plaintext highlighter-rouge">ts</code>). (Using <code class="language-plaintext highlighter-rouge">sem_timedwait()</code> has
+the advantage that the thread handling a connection with a receiver will not be blocked
+indefinitely if there are no messages waiting to be delivered to that receiver.)</p>
+
+<h3 id="synchronizing-shared-data">Synchronizing shared data</h3>
+
+<p>Synchronization is typically necessary when multiple threads can attempt to access the
+same data in a hazardous manner at the same time. Synchronization may also be necessary if
+certain semantics are desired of accessed to shared data (e.g. guaranteed ordering).</p>
+
+<p>Strictly speaking, if the data type is <em>atomic</em>, read accesses need not be synchronized so
+long as they can never occur at the same time as a write. However, for this assignment, we
+are not using <em>atomic types</em>, so you will need to synchronize <em>all concurrent access</em>.</p>
+
+<p>The section of code where synchronized access to data is imposed is called a
+“critical section”, and should be limited in length as concurrency is greatly
+restricted in these sections. Making critical sections too long can potentially
+cripple performance in real-world applications.</p>
+
+<p>Add synchronization to the <code class="language-plaintext highlighter-rouge">Server</code>, <code class="language-plaintext highlighter-rouge">MessageQueue</code>, and <code class="language-plaintext highlighter-rouge">Room</code> objects to
+ensure that updates to these objects will never be lost, not matter how the
+objects are accessed. For example, if multiple clients try connect to the server
+at the same time, both clients must be registered correctly, without losing
+either one. Likewise, if two clients try join a room or send a chat at the
+same time, both requests must be successfully carried out, with neither
+operation “lost” or partially completed.</p>
+
+<p>In a more practical sense, you may want to introduce a mutex to the <code class="language-plaintext highlighter-rouge">Server</code>,
+<code class="language-plaintext highlighter-rouge">Room</code> and <code class="language-plaintext highlighter-rouge">MessageQueue</code> objects, and then add critical section(s) where needed
+to ensure that the synchronization requirements are met. <strong>Very important</strong>: You
+should not allow critical sections to be accessed across object boundaries to
+prevent synchronization bugs. For example, if you implement a mutex in the
+<code class="language-plaintext highlighter-rouge">Room</code> class, you should make it private and only synchronize to it from <code class="language-plaintext highlighter-rouge">Room</code>
+methods.</p>
+
+<p>Consider your synchronization hazards carefully! There are a few cases that may
+cause data races that are not immediately obvious (e.g. you must ensure that
+clients never broadcast and join/leave the room at the same time to prevent
+races).</p>
+
+<h4 id="guard-locks">Guard locks</h4>
+
+<p>To help ensure that locks are always released, we have provided a “block scoped lock”
+implementing the “Resource Acquisition Is Initialization” (RAII) pattern in <code class="language-plaintext highlighter-rouge">guard.h</code>.
+This means that constructing the <code class="language-plaintext highlighter-rouge">Guard</code> object blocks until the lock is acquired, and
+allowing it to go out of scope releases the lock. If you need the lock to be held for a
+shorter scope than the entire enclosing block, you can introduce additional scoped blocks:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>void foo(pthread_mutex_t *lock) {
+    ...
+    // introduce new block scope
+    {
+        // Aquire lock, blocks thread until lock becomes available
+        Guard(*lock);
+        // do something with the lock held
+        // invariant upheld: only one thread may enter this section at a time.
+        ...
+    }
+    // lock is RELEASED here, and threads will be concurrent
+    ...
+}
+</code></pre></div></div>
+
+<p>We <strong>highly recommend</strong> that you use <code class="language-plaintext highlighter-rouge">Guard</code> objects instead of raw calls to
+<code class="language-plaintext highlighter-rouge">pthread_mutex_lock()</code> and <code class="language-plaintext highlighter-rouge">pthread_mutex_unlock()</code>, as the block scoping
+ensures that you will never forget to release the lock. This prevents a vast class
+of possible deadlocks. Remember that <code class="language-plaintext highlighter-rouge">pthread_mutex_init</code> must be called exactly
+once on each mutex before it can be used.</p>
+
+<h4 id="synchronization-report">Synchronization report</h4>
+
+<p>Since synchronization is an important part of this assignment, we’d like you to
+support a report on your synchronization in your README.txt. Please include where
+your critical sections are, how you determined them, and why you chose the
+synchronization primitives for each section. You should also explain how your
+critical sections ensure that the synchronization requirements are met without
+introducing synchronization hazards (e.g. race conditions and deadlocks).</p>
+
+<h3 id="error-handling-1">Error Handling</h3>
+
+<p>If the server fails to bind the listen TCP socket for any reason on the host, you must
+print an error message to <code class="language-plaintext highlighter-rouge">stderr</code> and return a non-zero return code. Once the server
+binds the port and starts listening for clients, it does not need to handle shutting
+itself down.</p>
+
+<p>We expect your server to be <em>robust</em>. This means no matter what any client
+sends, in any order, your server should not crash. To ensure that this is
+the case, you probably will want to use the <code class="language-plaintext highlighter-rouge">rio_*</code> functions, and the
+<code class="language-plaintext highlighter-rouge">Connection</code> class you implemented for the clients. Some (non-exhaustive)
+examples of bad things the clients may do that <em>should not</em> crash your server
+include:</p>
+
+<ul>
+  <li>Sending messages longer than <code class="language-plaintext highlighter-rouge">Message::MAX_LEN</code></li>
+  <li>Sending invalid messages that cannot be parsed, including empty messages.</li>
+  <li>Sending messages with invalid tags.</li>
+  <li>Leaving and joining at any point in the communication sequence.</li>
+  <li>Attempting to send a response to a client that has dropped off between the
+  time a message was sent and before it could accept its response.</li>
+</ul>
+
+<p>If a message cannot be parsed, could not be carried out, or is not a valid
+message, you must send an <code class="language-plaintext highlighter-rouge">err</code> message to the client with a descriptive
+payload. If a sender tries to send a message or leave a room while it is not in
+a room, you must also return <code class="language-plaintext highlighter-rouge">err</code> with a suitable payload. This <em>should not</em>
+stop the server, nor disconnect the client. Otherwise, you <em>must</em> send an <code class="language-plaintext highlighter-rouge">ok</code>
+message with suitable payload. Failure to send a response to a client operating
+in synchronous mode at any time is a <em>severe</em> bug that will cause most tests to fail.</p>
+
+<p>All client data should be cleaned up as soon as the server detects that the
+client connection has died. You may assume that any transmission error indicates
+that a client has died. It is okay if receivers are not cleaned up until the
+next broadcast is sent to a room for ease of implementation.</p>
+
+<p>Since your server has no way of shutting down, you may ignore the “in-use at
+exit” portion of valgrind. You should still fix any leaks (sections marked
+“definitely lost”), invalid reads, invalid writes, and invalid conditional jumps</p>
+
+<h3 id="implementation-tips-1">Implementation tips</h3>
+
+<p>Start early! There are quite a few things you will need to consider in order to
+receive full credit. We recommend that you start by implementing the logic that waits for
+new client connections and spawns client threads to handle them. If you are struggling
+with synchronization, we recommend that you start with a basic implementation without any
+synchronization, which might help you identify critical sections.</p>
+
+<p>We recommend that you use <em>detached threads</em>. This means that you will not have to join
+them back to the primary thread, and that you do not have to save the <code class="language-plaintext highlighter-rouge">pthread_t</code>returned
+from <code class="language-plaintext highlighter-rouge">pthread_create()</code>. There are two safe ways to do this. This first is to initialize a
+<code class="language-plaintext highlighter-rouge">pthread_attr_t</code> struct with the correct flags using <code class="language-plaintext highlighter-rouge">pthread_attr_setdetachedstate()</code>,
+and pass this into the relevant argument for <code class="language-plaintext highlighter-rouge">pthread_create()</code>. The second is to call
+<code class="language-plaintext highlighter-rouge">pthread_detach(pthread_self())</code> from the child thread. Under no circumstances should you
+attempt to detach the thread using a call in the creating thread, after the child
+is created, as that will cause a data race.</p>
+
+<p>Don’t forget to initialize your synchronization primitives before use. For
+<code class="language-plaintext highlighter-rouge">pthread_mutex_t</code>s this is <code class="language-plaintext highlighter-rouge">pthread_mutex_init()</code>. For semaphores, this is <code class="language-plaintext highlighter-rouge">sem_init()</code>.
+Use of synchronization primitives before they are initialized is undefined behaviour and
+<em>will break your code</em>. You should also destroy your synchronization primitives when you
+release their associated resources. Failure to call the destruction functions may result
+in leaked memory.</p>
+
+<p>Do not attempt to share stack-allocated data between threads. This is undefined
+behaviour and generally causes <em>severe</em> bugs. Instead, ensure that any data
+that must be accessed between threads is part of a heap-allocation.</p>
+
+<p>We also recommend using scope to your advantage. RAII resources such as the provided
+<code class="language-plaintext highlighter-rouge">Guard</code> type prevent mistakes like forgetting to release resources, and defining variables
+to the narrowest scopes they require dramatically reduces the clast radius of any
+bugs that do arise. Aim to fail fast and early if invalid states are encountered.</p>
+
+<p>If the server appears to become unresponsive for a long period of time it has
+probably deadlocked, and you will need to examine your synchronization. If a
+server doesn’t bind a socket on a given port, try another one, as the port you are
+trying to bind may be already taken (e.g. by another student on your ugrad machine).</p>
+
+<h3 id="testing-1">Testing</h3>
+
+<p>We have provided the testing methods below to help you ensure that your program
+is working correctly. <em>We highly recommend against using the autograder as your
+primary testing solution</em>. The autograder is designed to be robust and thorough,
+and intentionally does not provide test feedback to you. Instead, we recommend
+that you use local testing techniques so you can use tools like debuggers and
+print statements to help debug.</p>
+
+<h4 id="manual-testing">Manual Testing</h4>
+
+<p>To test this program, you may follow the instructions in the <a href="#testing">MS1
+Testing</a> section, replacing the invocations of your client with
+<code class="language-plaintext highlighter-rouge">reference/ref-[client]</code>. Netcat testing will probably also be a good idea so
+you can figure out exactly what your server is sending.</p>
+
+<p>For example, to test a server implementation against netcat, you could open
+three terminal windows. In the first, you would run <code class="language-plaintext highlighter-rouge">./server [port]</code>, in the
+second you would run <code class="language-plaintext highlighter-rouge">nc localhost [port]</code> and send a <code class="language-plaintext highlighter-rouge">rlogin</code> message, in the
+third you would run <code class="language-plaintext highlighter-rouge">nc localhost [port]</code> and send a <code class="language-plaintext highlighter-rouge">slogin</code> message. Then you
+would follow the flow diagrams to send messages from your netcat “clients”,
+verifying the server responses that appear. If everything works in manual netcat
+testing, you would move onto testing with our reference binaries using a similar
+approach, before trying the automated test scripts posted below.</p>
+
+<p>Here is a capture of an example testing session:</p>
+
+<div id="server-test-widget"></div>
+<script>
+  AsciinemaPlayer.create('assign05/server_test.cast', document.getElementById('server-test-widget'), {
+  speed: 2.5,
+  idleTimeLimit: 2,
+  poster: 'npt:0:32'
+  });
+</script>
+
+<h3 id="automated-testing-1">Automated Testing</h3>
+
+<p>Here are some automated tests you can try:</p>
+
+<ul>
+  <li><a href="/fall2023/assign/assign05/test_sequential.sh">test_sequential.sh</a></li>
+  <li><a href="/fall2023/assign/assign05/test_interleaved.sh">test_interleaved.sh</a></li>
+  <li><a href="/fall2023/assign/assign05/test_concurrent.sh">test_concurrent.sh</a></li>
+</ul>
+
+<p>Don’t forget to make these scripts executable using <code class="language-plaintext highlighter-rouge">chmod u+x [script name]</code>!</p>
+
+<p><code class="language-plaintext highlighter-rouge">test_sequential.sh</code> runs two senders, one after the other, and is invoked
+using:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_sequential.sh [port] [first_sender_input_file] [second_sender_input_file]
+[output_stem]
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">test_interleaved.sh</code> runs two senders, alternating between them for each line
+of the input file. I can be invoked as follows:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_interleaved.sh [port] [unified input file] [output_stem]
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">test_concurrent.sh</code> does its best to break your server’s synchronization by
+spawning all sorts of clients that try send data as fast as possible while
+simultaneously switching rooms and disconnecting. It can be invoked as follows:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_concurrent.sh [port] [iterations] [settling time]
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">[output_stem]</code> will set the file that contains the receiver output after each
+run. <code class="language-plaintext highlighter-rouge">[output_stem].out</code> contains the output of the receiver, and
+<code class="language-plaintext highlighter-rouge">[output_stem].err</code> contains the receiver errors. For the sequential and
+concurrent tests, we always expect the first user to be <code class="language-plaintext highlighter-rouge">bob</code> and the second
+user to be <code class="language-plaintext highlighter-rouge">alice</code>, and errors for their respective senders will be found in
+<code class="language-plaintext highlighter-rouge">[user].err</code>. Please keep this in mind as you write additional tests.</p>
+
+<p>While we highly recommend you write your own test cases, we have provided the
+following tests inputs as examples:</p>
+
+<ul>
+  <li><a href="/fall2023/assign/assign05/test_inter.in">test_inter.in</a></li>
+  <li><a href="/fall2023/assign/assign05/seq_send_1.in">seq_send_1.in</a></li>
+  <li><a href="/fall2023/assign/assign05/seq_send_2.in">seq_send_2.in</a></li>
+</ul>
+
+<p>You can run the reference sequential test using the following command:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_sequential.sh [port] seq_send_1.in seq_send_2.in seq_recv
+</code></pre></div></div>
+
+<p>and you should get nothing in <code class="language-plaintext highlighter-rouge">seq_recv.err</code>, <code class="language-plaintext highlighter-rouge">bob.err</code>, <code class="language-plaintext highlighter-rouge">alice.err</code>, and the
+following output in <code class="language-plaintext highlighter-rouge">seq_recv.out</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>alice: Hello everyone
+alice: I am trying to purchase the cookies
+alice: Please give me your headcount and the number of cookies you want
+bob: Hi Alice
+bob: This is Bob.
+bob: I want a chocolate peanut cookie with walnuts.
+bob: Thanks!
+
+</code></pre></div></div>
+
+<p>and you should ensure that your server does not print anything to <code class="language-plaintext highlighter-rouge">stdout</code>.</p>
+
+<p>You can run the reference interleaved test using the following command:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./test_interleaved.sh [port] test_inter.in inter_recv
+</code></pre></div></div>
+<p>and you should get nothing in <code class="language-plaintext highlighter-rouge">inter_recv.err</code>, <code class="language-plaintext highlighter-rouge">bob.err</code>, <code class="language-plaintext highlighter-rouge">alice.err</code>, and the
+following output in <code class="language-plaintext highlighter-rouge">inter_recv.out</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>alice: This is a message from alice
+bob: And this is a message from bob
+alice: each alternating line of messages...
+bob: will be send by a different client...
+alice: this test ensures that clients are served in order
+bob: and that one client may not monopolize the entire transmission
+
+</code></pre></div></div>
+
+<p>and you should ensure that the server does not print anything to stdout.</p>
+
+<p>Some good parameters to start the concurrency test with are 10000 iterations and
+30 seconds of settling time. If the test succeeds, you should see <code class="language-plaintext highlighter-rouge">Tests passed
+successfully!</code>. Increasing the number of iterations will increase the likelihood
+of detecting a race condition. If the test ends with <code class="language-plaintext highlighter-rouge">Failed to verify*</code> try
+increasing the settling time. If increasing the settling time to over one
+minute does not allow the test to pass, you probably have a race. However, do
+note that having this test pass does not guarantee that your code is sync-safe.</p>
+
+<p>You should run the concurrency test <em>last</em>, after you get all other
+functionality working. The concurrency test will exercise all parts of your
+server while it tries to cause race conditions.</p>
+
+<p>Note that the server can be run under valgrind by setting the <code class="language-plaintext highlighter-rouge">VALGRIND_ENABLE</code>
+environment variable to <code class="language-plaintext highlighter-rouge">1</code>. For example, if you want to run the sequential test
+with valgrind, the command would be run using <code class="language-plaintext highlighter-rouge">VALGRIND_ENABLE=1
+./test_sequential.sh ...</code>. Remember that you may ignore the reports for “indirectly lost”,
+“possibly lost”, and “in use at exit”, and any leaks caused by <code class="language-plaintext highlighter-rouge">pthread_*</code>
+functions, but must fix everything else.</p>
+
+<h2 id="reference">Reference</h2>
+
+<p>In the <code class="language-plaintext highlighter-rouge">reference</code> directory of the project skeleton, you will find executables
+called <code class="language-plaintext highlighter-rouge">ref-server</code>, <code class="language-plaintext highlighter-rouge">ref-sender</code>, and <code class="language-plaintext highlighter-rouge">ref-receiver</code>. As the names suggest, these
+are the reference implementations of the server, sender, and receiver. Your
+<code class="language-plaintext highlighter-rouge">server</code>, <code class="language-plaintext highlighter-rouge">sender</code>, and <code class="language-plaintext highlighter-rouge">receiver</code> executables should be functionally
+equivalent.</p>
+
+<p>Here is a suggested test scenario.  You will need three terminal sessions.</p>
+
+<p>In terminal number 1, run the server (user input in <strong>bold</strong>):</p>
+
+<div class="highlighter-rouge">
+<pre>
+$ <b>./ref-server 47374</b>
+</pre>
+</div>
+
+<p>You can use any port number 1024 or above instead of 47374.</p>
+
+<p>In terminal number 2, run the receiver (user input in <strong>bold</strong>):</p>
+
+<div class="highlighter-rouge">
+<pre>
+$ <b>./ref-receiver localhost 47374 alice cafe</b>
+</pre>
+</div>
+
+<p>Make sure you use the same port that you used in the <code class="language-plaintext highlighter-rouge">server</code> command.</p>
+
+<p>In terminal number 3, run the sender (user input in <strong>bold</strong>):</p>
+
+<div class="highlighter-rouge">
+<pre>
+$ <b>./ref-sender localhost 47374 bob</b>
+<b>/join cafe</b>
+<b>hey everybody!</b>
+<b>/quit</b>
+</pre>
+</div>
+
+<p>In terminal number 2 (where the receiver is running, you should see the following output):</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bob: hey everybody!
+</code></pre></div></div>
+
+<p>Note that while the <code class="language-plaintext highlighter-rouge">ref-sender</code> program will terminate when the <code class="language-plaintext highlighter-rouge">/quit</code> command
+is executed, the <code class="language-plaintext highlighter-rouge">ref-server</code> and <code class="language-plaintext highlighter-rouge">ref-receiver</code> programs will need to be
+terminated using Control-C.</p>
+
+<h2 id="submitting">Submitting</h2>
+
+<p>You can use the <code class="language-plaintext highlighter-rouge">solution.zip</code> target in the provided <code class="language-plaintext highlighter-rouge">Makefile</code> to create a zipfile
+you can submit to Gradescope:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>make solution.zip
+</code></pre></div></div>
+
+<p>Upload your <code class="language-plaintext highlighter-rouge">solution.zip</code> as <strong>Assignment 5 MS1</strong> or <strong>Assignment 5 MS2</strong>,
+depending on which milestone you are submitting.</p>
+
+<p>Make sure your Milestone 2 submission includes your <code class="language-plaintext highlighter-rouge">README.txt</code> describing
+your approach to thread synchronization in the server.</p>
+
+
+    <div id="footer"></div>
+
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        csf.pageCategory = "";
+        csf.onLoad();
+      });
+    </script>
+  </div>
+</body>
+
+</html>
