@@ -35,7 +35,6 @@ int main(int argc, char **argv) {
   // check if connection was successful
   if (!conn.is_open()) {
     cerr << "Sender connection failed\n";
-    conn.close();
     return 1;
   }
 
@@ -43,7 +42,6 @@ int main(int argc, char **argv) {
   Message slogin_msg = Message(TAG_SLOGIN, username);
   if (!conn.send(slogin_msg)) {
     cerr << slogin_msg.data;
-    conn.close();
     return 1;
   }
 
@@ -51,7 +49,6 @@ int main(int argc, char **argv) {
   Message slogin_response;
   if (!conn.receive(slogin_response) || slogin_response.tag == TAG_ERR) {
     cerr << slogin_response.data;
-    conn.close();
     return 1;
   }
 
@@ -76,7 +73,6 @@ int main(int argc, char **argv) {
       if (!conn.receive(quit_response) || quit_response.tag == TAG_ERR || 
            conn.get_last_result() == Connection::INVALID_MSG) {
         cerr << quit_response.data;
-        conn.close();
         return 1;
       }
       break;
@@ -95,9 +91,9 @@ int main(int argc, char **argv) {
 
     if (!conn.send(msg)) {
       cerr << "Failed to send message: " << msg.data;
-      conn.close();
       return 1;
     }
+
     Message response;
     if (!conn.receive(response) || response.tag == TAG_ERR ||
          conn.get_last_result() == Connection::INVALID_MSG) {

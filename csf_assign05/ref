@@ -1,0 +1,261 @@
+#include <sstream>
+#include <cctype>
+#include <cassert>
+#include "csapp.h"
+#include "message.h"
+#include "connection.h"
+#include <iostream> //remove
+
+Connection::Connection()
+  : m_fd(-1)
+  , m_last_result(SUCCESS) {
+}
+
+Connection::Connection(int fd)
+  : m_fd(fd)
+  , m_last_result(SUCCESS) {
+  rio_readinitb(&m_fdbuf, fd);
+}
+
+void Connection::connect(const std::string &hostname, int port) {
+  const char * port_s = std::to_string(port).c_str(); 
+  m_fd = open_clientfd(hostname.c_str(), port_s);
+  rio_readinitb(&m_fdbuf, m_fd);
+}
+
+Connection::~Connection() {
+  ::close(m_fd);
+}
+
+bool Connection::is_open() const {
+  return m_fd >= 0;
+}
+
+void Connection::close() {
+  ::close(m_fd);
+}
+
+bool Connection::send(const Message &msg) {
+  // return true if successful, false if not
+  std::string outgoing = msg.tag + ":" + msg.data + "\n";
+  int written = rio_writen(m_fd, outgoing.c_str(), strlen(outgoing.c_str()));
+  if (written < 0) {
+    m_last_result = EOF_OR_ERROR;
+    return false;
+  }
+  m_last_result = SUCCESS;
+  return true;
+  // make sure that m_last_result is set appropriately
+}
+
+bool Connection::receive(Message &msg) {
+  // TODO: receive a message, storing its tag and data in msg
+  char *incoming = new char[msg.MAX_LEN];
+  ssize_t read = rio_readlineb(&m_fdbuf, incoming, msg.MAX_LEN);
+  if (read <= 0) {
+    m_last_result = EOF_OR_ERROR;
+    delete[] incoming;
+    return false;
+  }
+  if (incoming[read-1] == '\n') {
+    /* trim trailing LF (newline) */
+    incoming[--read] = '\0';
+  }
+  if (incoming[read-1] == '\r') {
+    /* trim trailing CR */
+    incoming[--read] = '\0';
+  }
+  std::string incoming_s(incoming);
+  int slice_pos = incoming_s.find(":");
+  msg.tag = incoming_s.substr(0, slice_pos);
+  msg.data = incoming_s.substr(slice_pos + 1);
+  m_last_result = SUCCESS;
+  delete[] incoming;
+  return true;
+}
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include "csapp.h"
+#include "message.h"
+#include "connection.h"
+#include "client_util.h"
+
+int main(int argc, char **argv) {
+  if (argc != 5) {
+    std::cerr << "Usage: ./receiver [server_address] [port] [username] [room]\n";
+    return 1;
+  }
+
+  std::string server_hostname = argv[1];
+  int server_port = std::stoi(argv[2]);
+  std::string username = argv[3];
+  std::string room_name = argv[4];
+
+  Connection conn;
+
+  // TODO: connect to server
+
+  conn.connect(server_hostname, server_port);
+
+  if (!conn.is_open()) { 
+    std::cerr << "Couldn't connect to server" << std::endl;
+    return 1;
+  }
+
+  //Sending rlogin message
+  Message login_msg(TAG_RLOGIN, username);
+  if (!conn.send(login_msg)) {
+    std::cerr << "Login failed. Please try again." << std::endl;
+    return 1;
+  };
+  //reading for response for server
+  Message login_response;
+  if (!conn.receive(login_response)) {
+    std::cerr << "Error receiving response from server" << std::endl;
+  }
+  //ensuring response is not error
+  if (login_response.tag == TAG_ERR) {
+    std::cerr << login_response.data << std::endl;
+    return 1;
+  }
+  //Sending join message
+  Message join_msg(TAG_JOIN, room_name);
+  if (!conn.send(join_msg)) {
+    std::cerr << "Login failed. Please try again." << std::endl;
+    return 1;
+  }
+  //reading for response
+  Message join_response;
+  if (!conn.receive(join_response)) {
+    std::cerr << "Error receiving response from server" << std::endl;
+  }
+  //exiting if response is error
+  if (join_response.tag == TAG_ERR) {
+    std::cerr << join_response.data << std::endl;
+    return 1;
+  }
+  Message curr_msg;
+
+  while (conn.receive(curr_msg)) {
+    size_t slice_pos = curr_msg.data.find(":");
+    std::string msg = curr_msg.data.substr(slice_pos + 1);
+    slice_pos = msg.find(":");
+    if (slice_pos == std::string::npos) continue;
+    std::cout << msg.substr(0, slice_pos) << ": " << msg.substr(slice_pos + 1) << std::endl;
+  } 
+
+  conn.close();
+
+  return 0;
+}
+
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#include "csapp.h"
+#include "message.h"
+#include "connection.h"
+#include "client_util.h"
+
+bool check_for_response(Connection &conn) {
+  Message outgoing_response;
+  conn.receive(outgoing_response);
+  if (outgoing_response.tag == TAG_ERR) {
+    std::cerr << outgoing_response.data << std::endl;
+    return false;
+  }
+  return true;
+}
+
+bool handle_user_command(Connection &conn, std::string line, std::string &room) {
+  char * save;
+  std::string command = strtok_r(&line[0], " ", &save);
+  if (command == "/quit") {
+    Message quit_msg(TAG_QUIT, "");
+    conn.send(quit_msg);
+    check_for_response(conn); 
+    return false;
+  }
+  if (command == "/leave") {
+    Message leave_msg(TAG_LEAVE, room);
+    conn.send(leave_msg);
+    room = "";
+    check_for_response(conn);
+    return true;
+  } else if (command == "/join") {
+    room = strtok_r(NULL, " ", &save);
+    Message join_msg(TAG_JOIN, room);
+    conn.send(join_msg);
+    check_for_response(conn);
+    return true;
+  }
+  std::cerr << "Invalid command, try again" << std::endl;
+  return true;
+}
+
+int handle_user_input(Connection &conn, std::string username) {
+  std::string curr_line;
+  std::string room = "";
+  while (conn.get_last_result() == Connection::SUCCESS) {
+    getline(std::cin, curr_line);
+    if(curr_line.at(0) == '/') {
+      if (!handle_user_command(conn, curr_line, room)) return 0;
+    } else {
+      //sending a message
+      if (room.size() == 0) {
+        std::cerr << "Error: Must join a room first!" << std::endl;
+        continue;
+      }
+      Message outgoing(TAG_SENDALL, curr_line);
+      conn.send(outgoing); 
+      //check for ok message
+      check_for_response(conn);
+    }
+  }
+  return 1;
+}
+
+int main(int argc, char **argv) {
+  if (argc != 4) {
+    std::cerr << "Usage: ./sender [server_address] [port] [username]\n";
+    return 1;
+  }
+
+  std::string server_hostname;
+  int server_port;
+  std::string username;
+
+  server_hostname = argv[1];
+  server_port = std::stoi(argv[2]);
+  username = argv[3];
+
+  Connection conn;
+
+  conn.connect(server_hostname, server_port);
+  if (!conn.is_open()) { 
+    std::cerr << "Couldn't connect to server" << std::endl;
+    return 1;
+  }
+  // TODO: send slogin message
+  Message login_msg(TAG_SLOGIN, username);
+  if (!conn.send(login_msg)) {
+    std::cerr << "Login failed. Please try again." << std::endl;
+    return 1;
+  };
+  //reading for response for server
+  Message login_response;
+  if (!conn.receive(login_response)) {
+    std::cerr << "Error receiving response from server" << std::endl;
+  }
+  //ensuring response is not error
+  if (login_response.tag == TAG_ERR) {
+    std::cerr << login_response.data << std::endl;
+    return 1;
+  }
+  return handle_user_input(conn, username);
+}
+

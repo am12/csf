@@ -35,7 +35,6 @@ int main(int argc, char **argv) {
   // check if connection was successful
   if (!conn.is_open()) {
     cerr << "Receiver connection failed";
-    conn.close();
     return 1;
   }
 
@@ -43,7 +42,6 @@ int main(int argc, char **argv) {
   Message rlogin_msg = Message(TAG_RLOGIN, username);
   if (!conn.send(rlogin_msg)) {
     cerr << rlogin_msg.data;
-    conn.close();
     return 1;
   }
 
@@ -51,7 +49,6 @@ int main(int argc, char **argv) {
   Message rlogin_response;
   if (!conn.receive(rlogin_response) || rlogin_response.tag == TAG_ERR) {
     cerr << rlogin_response.data;
-    conn.close();
     return 1;
   }
 
@@ -59,7 +56,6 @@ int main(int argc, char **argv) {
   Message join_msg = Message(TAG_JOIN, room_name);
   if (!conn.send(join_msg)) {
     cerr << join_msg.data;
-    conn.close();
     return 1;
   }
 
@@ -67,7 +63,6 @@ int main(int argc, char **argv) {
   Message join_response;
   if (!conn.receive(join_response) || join_response.tag == TAG_ERR) {
     cerr << join_response.data;
-    conn.close();
     return 1;
   }
   
