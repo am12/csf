@@ -20,6 +20,14 @@
 // TODO: add any additional data types that might be helpful
 //       for implementing the Server member functions
 
+struct Info {
+  Connection *conn;
+  Server *server;
+  ~Info() {
+    delete conn;
+  }
+};
+
 ////////////////////////////////////////////////////////////////////////
 // Client thread functions
 ////////////////////////////////////////////////////////////////////////
