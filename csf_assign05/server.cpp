@@ -13,6 +13,12 @@
 #include "guard.h"
 #include "server.h"
 
+using std::cerr;
+using std::cout;
+using std::cin;
+using std::string;
+using std::to_string;
+
 ////////////////////////////////////////////////////////////////////////
 // Server implementation data types
 ////////////////////////////////////////////////////////////////////////
@@ -23,7 +29,11 @@
 struct Info {
   Connection *conn;
   Server *server;
+
+  Info(Connection *conn, Server *server) : conn(conn), server(server) { }
+
   ~Info() {
+    // destroy connection when object is destroyed
     delete conn;
   }
 };
@@ -253,27 +263,66 @@ void *worker(void *arg) {
 // Server member function implementation
 ////////////////////////////////////////////////////////////////////////
 
-Server::Server(int port)
-  : m_port(port)
-  , m_ssock(-1) {
+Server::Server(int port) 
+  : m_port(port), m_ssock(-1) {
   // TODO: initialize mutex
-}
+    pthread_mutex_init(&m_lock, nullptr);
+  }
 
 Server::~Server() {
   // TODO: destroy mutex
+  pthread_mutex_destroy(&m_lock);
 }
 
 bool Server::listen() {
   // TODO: use open_listenfd to create the server socket, return true
   //       if successful, false if not
+  string port = to_string(m_port);
+  m_ssock = open_listenfd(port.c_str());
+  if (m_ssock < 0) {
+    cerr << "Server socket failed to open";
+    return false;
+  }
+  return true;
 }
 
 void Server::handle_client_requests() {
   // TODO: infinite loop calling accept or Accept, starting a new
   //       pthread for each connected client
+
+  while (1) {
+    int clientfd = accept(m_ssock, nullptr, nullptr);
+    if (clientfd < 0) {
+      cerr << "Error accepting connection";
+      return;
+    }
+
+    Info *info = new Info(new Connection(clientfd), this);
+
+    pthread_t thread_id;
+
+    if (pthread_create(&thread_id, nullptr, worker, static_cast<void *>(info)) != 0) {
+      cerr << "Failed to create thread";
+      return;
+    }
+  }
 }
 
 Room *Server::find_or_create_room(const std::string &room_name) {
   // TODO: return a pointer to the unique Room object representing
   //       the named chat room, creating a new one if necessary
+
+  Guard g(m_lock);
+  auto i = m_rooms.find(room_name);
+  
+  Room *r;
+  if (i == m_rooms.end()) {
+    // room does not exist, create new room and add to map
+    r = new Room(room_name);
+    m_rooms[room_name] = r;
+  } else {
+    r = i->second;
+  }
+
+  return r;
 }
