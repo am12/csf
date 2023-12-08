@@ -44,32 +44,41 @@ struct Info {
 /// SENDER AND RECEIVER IMPLEMENTATIONS (START)
 
 void receiver_chat(Connection *conn, Server *server, User *user) {
-  // terminate the loop and tear down the client thread if any message transmission fails or if quit message
-  // respond to join room
-  Message message = Message();
+  Message message;
   Room *room = nullptr;
+
+  // did not receive message
   if (!conn->receive(message)) {
-    if (conn->get_last_result() == Connection::INVALID_MSG) {
+    if (conn->get_last_result() == Connection::INVALID_MSG || conn->get_last_result() == Connection::EOF_OR_ERROR) {
       conn->send(Message(TAG_ERR, "invalid message"));
     } else {
       conn->send(Message(TAG_ERR, "receive failed"));
     }
+    delete user;
     return;
   }
-  // message too long
-  if (message.data.length() == Message::MAX_LEN) {
-    conn->send(Message(TAG_ERR, "message is too long"));
+
+  // not a join message
+  if (message.tag != TAG_JOIN) {
+    conn->send(Message(TAG_ERR, "expected a join message"));
+    delete user;
+    return;
   }
+
+  // message too long
+  if (message.data.length() >= Message::MAX_LEN) {
+    conn->send(Message(TAG_ERR, "message is too long"));
+    delete user;
+    return;
+  }
+
   // joined a room
   if (!room) {
-    if (message.tag == TAG_JOIN) {
-      room = server->find_or_create_room(message.data);
-      room->add_member(user);
-      if (!conn->send(Message(TAG_OK, "joined room"))) {
-        return;
-      }
-    } else {
-      conn->send(Message(TAG_ERR, "must join room before sending a message"));
+    room = server->find_or_create_room(message.data);
+    room->add_member(user);
+    if (!conn->send(Message(TAG_OK, "joined room"))) {
+      delete user;
+      return;
     }
   }
 
@@ -85,10 +94,13 @@ void receiver_chat(Connection *conn, Server *server, User *user) {
       delete new_msg;
     }
   }
+
+  // cleanup
   if (room) {
     room->remove_member(user);
   }
   delete user;
+  delete conn;
 }
 
 
@@ -98,17 +110,16 @@ void sender_chat(Connection *conn, Server *server, User *user) {
   while (1) {
     Message message;
 
-    // try to receive a message
+    // did not receive a message
     if (!conn->receive(message)) {
-      // failed to receive a message
       if (conn->get_last_result() == Connection::INVALID_MSG || conn->get_last_result() == Connection::EOF_OR_ERROR) {
         conn->send(Message(TAG_ERR, "invalid message"));
-        return;
       } else {
         conn->send(Message(TAG_ERR, "receive failed"));
       }
+      return;
     } 
-    
+
     // quit message
     if (message.tag == TAG_QUIT) {
       conn->send(Message(TAG_OK, "goodbye."));
@@ -122,11 +133,11 @@ void sender_chat(Connection *conn, Server *server, User *user) {
     }
 
     // message too long
-    if (message.data.length() == Message::MAX_LEN) {
+    if (message.data.length() >= Message::MAX_LEN) {
       conn->send(Message(TAG_ERR, "message is too long"));
     }
 
-    // if user has not joined a room, the only command available is joining a room
+    // if user has not joined a room, join a room
     else if (!room) {
       if (message.tag == TAG_JOIN) {
         room = server->find_or_create_room(message.data);
@@ -139,26 +150,20 @@ void sender_chat(Connection *conn, Server *server, User *user) {
       }
     }
 
-    // respond to /join [room]
+    // joining a new room (/join [room])
     else if (message.tag == TAG_JOIN) {
       room->remove_member(user);
       room = server->find_or_create_room(message.data);
       room->add_member(user);
-      if (!conn->send(Message(TAG_OK, "joined room"))) {
+      if (!conn->send(Message(TAG_OK, "switched rooms"))) {
         return;
       }
     }
-    // respond to [message text]
-    else if (message.tag == TAG_SENDALL) { 
-      room->broadcast_message(user->username, message.data);
-      if (!conn->send(Message(TAG_OK, "message sent to all in room"))) {
-        return;
-      }
-    }
-    // respond to /leave
+
+    // leaving room (/leave)
     else if (message.tag == TAG_LEAVE) {
       // de-register sender from room
-      if (room != nullptr) {
+      if (room) {
         room->remove_member(user);
         room = nullptr;
         if (!conn->send(Message(TAG_OK, "left room"))) {
@@ -168,14 +173,26 @@ void sender_chat(Connection *conn, Server *server, User *user) {
         conn->send(Message(TAG_ERR, "you are not in a room"));
       }
     } 
+
+    // broadcast message ([msg])
+    else if (message.tag == TAG_SENDALL) { 
+      room->broadcast_message(user->username, message.data);
+      if (!conn->send(Message(TAG_OK, "message broadcast to room"))) {
+        return;
+      }
+    }
+
     // not a valid tag
     else {
       conn->send(Message(TAG_ERR, "invalid tag"));
     }
-    
+  }
+
+  // cleanup
+  if (room) {
+    room->remove_member(user);
   }
   delete user;
-  delete conn;
 }
 
 /// SENDER AND RECEIVER IMPLEMENTATIONS (END)
@@ -208,7 +225,9 @@ void *worker(void *arg) {
   } 
 
   string username = login_msg.data;
-  info->conn->send(Message(TAG_OK, "welcome, " + username));
+  if (!info->conn->send(Message(TAG_OK, "welcome, " + username))) {
+    return nullptr;
+  }
 
   // TODO: depending on whether the client logged in as a sender or
   //       receiver, communicate with the client (implementing
