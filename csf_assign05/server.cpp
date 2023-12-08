@@ -54,21 +54,18 @@ void receiver_chat(Connection *conn, Server *server, User *user) {
     } else {
       conn->send(Message(TAG_ERR, "receive failed"));
     }
-    delete user;
     return;
   }
 
   // not a join message
   if (message.tag != TAG_JOIN) {
     conn->send(Message(TAG_ERR, "expected a join message"));
-    delete user;
     return;
   }
 
   // message too long
   if (message.data.length() >= Message::MAX_LEN) {
     conn->send(Message(TAG_ERR, "message is too long"));
-    delete user;
     return;
   }
 
@@ -77,7 +74,6 @@ void receiver_chat(Connection *conn, Server *server, User *user) {
     room = server->find_or_create_room(message.data);
     room->add_member(user);
     if (!conn->send(Message(TAG_OK, "joined room"))) {
-      delete user;
       return;
     }
   }
@@ -243,6 +239,131 @@ void *worker(void *arg) {
   return nullptr;
 }
 
+// void *worker(void *arg) {
+//   pthread_detach(pthread_self());
+//   Info *info_ = static_cast<Info *>(arg);
+
+//   // use a std::unique_ptr to automatically destroy the Info object
+//   // when the worker function finishes; this will automatically ensure
+//   // that the Connection object is destroyed                                                                                                                                                                
+//   std::unique_ptr<Info> info(info_);
+//   Message msg;
+
+//   if (!info->conn->receive(msg)) {
+//     if (info->conn->get_last_result() == Connection::INVALID_MSG) {
+//       info->conn->send(Message(TAG_ERR, "invalid message"));
+//     }
+//     return nullptr;
+//   }
+//   if (msg.tag != TAG_SLOGIN && msg.tag != TAG_RLOGIN) {
+//      info->conn->send(Message(TAG_ERR, "first message should be slogin or rlogin"));
+//      return nullptr;
+//    }
+//   std::string username = msg.data;
+//   info->conn->send(Message(TAG_OK, "welcome " + username));
+
+
+
+
+
+//   User *user = new User(msg.data);
+
+//   if(msg.tag == TAG_RLOGIN){
+//     // RLOGIN - receiver
+//     Message curr_msg;
+//     if (!info->conn->receive(curr_msg)) {
+//       if (info->conn->get_last_result() == Connection::INVALID_MSG) {
+//         info->conn->send(Message(TAG_ERR, "invalid message"));
+//       }
+//       delete user;
+//       return nullptr;
+//     }
+//     if (curr_msg.tag != TAG_JOIN) {
+//       info->conn->send(Message(TAG_ERR, "expected join message"));
+//       delete user;
+//       return nullptr;
+//     }
+    
+//     info->conn->send(Message(TAG_OK, "joined room"));
+
+//     std::string room_name = curr_msg.data;
+//     Room *room = info->server->find_or_create_room(room_name); //Server function
+//     room->add_member(user);
+    
+//     while (true){
+//       //receiver
+//       Message *new_msg = user->mqueue.dequeue(); //dynamic allocation- message added to queue from room.cpp
+//       if (new_msg) { //if message exists, send to client
+//         info->conn->send(*new_msg);
+//         delete new_msg;
+//       }
+//     }
+    
+//     if (room) { //if user is in the room, remove from the room
+//       room->remove_member(user);
+//     }
+//     delete user;
+//   }
+
+
+
+
+//   else {
+//     //SLOGIN- sender
+//     Message curr_msg;
+//     Room *room = nullptr;
+
+//     while (true){
+//       //sender
+//       if (!info->conn->receive(curr_msg)) {
+// 	      if (info->conn->get_last_result() == Connection::INVALID_MSG) {
+// 	        info->conn->send(Message(TAG_ERR, "invalid message"));
+// 	      } else {
+// 	       break; //no more(EOF?), need to leave while loop (error here)
+//         }
+//       }
+//       std::string room_name = curr_msg.data;
+    
+//       if (curr_msg.tag == TAG_JOIN) {
+// 	      if (room != nullptr){
+// 	        room->remove_member(user); //leave diffrent room before joining this one
+// 	      }
+//         info->conn->send(Message(TAG_OK, "joined room"));
+//         room = info->server->find_or_create_room(room_name); //Server func
+//         room->add_member(user);
+//       }
+//       else if (curr_msg.tag == TAG_LEAVE){
+// 	      if (room == nullptr) {
+// 	        info->conn->send(Message(TAG_ERR, "Error: not in any room"));
+// 	      } else {
+//           info->conn->send(Message(TAG_OK, "left room"));
+//           room->remove_member(user);
+//           room = nullptr;
+//         }
+//       }
+//       else if (curr_msg.tag == TAG_QUIT){
+//         info->conn->send(Message(TAG_OK, "bye"));
+//         break;
+//       }
+//       else if (curr_msg.tag == TAG_SENDALL){
+// 	      if (room == nullptr) {
+// 	        info->conn->send(Message(TAG_ERR, "Error: not in any room"));
+// 	      }
+//         room->broadcast_message(username, curr_msg.data);
+//         info->conn->send(Message(TAG_OK, "success"));
+//       }
+//       else {
+// 	     info->conn->send(Message(TAG_ERR, "invalid tag"));
+//       }
+//     }
+//     if (room != nullptr) {
+//       room->remove_member(user);
+//     }
+//     delete user;
+//   }
+//   return nullptr;
+// }
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -250,8 +371,9 @@ void *worker(void *arg) {
 ////////////////////////////////////////////////////////////////////////
 
 Server::Server(int port) 
-  : m_port(port), m_ssock(-1) {
-  // TODO: initialize mutex
+  : m_port(port)
+  , m_ssock(-1) {
+    // TODO: initialize mutex
     pthread_mutex_init(&m_lock, nullptr);
   }
 
@@ -266,7 +388,7 @@ bool Server::listen() {
   string port = to_string(m_port);
   m_ssock = open_listenfd(port.c_str());
   if (m_ssock < 0) {
-    cerr << "Server socket failed to open";
+    cerr << "Server socket failed to open\n";
     return false;
   }
   return true;
@@ -275,11 +397,10 @@ bool Server::listen() {
 void Server::handle_client_requests() {
   // TODO: infinite loop calling accept or Accept, starting a new
   //       pthread for each connected client
-
   while (1) {
     int clientfd = accept(m_ssock, nullptr, nullptr);
     if (clientfd < 0) {
-      cerr << "Error accepting connection";
+      cerr << "Error accepting connection\n";
       return;
     }
 
@@ -288,7 +409,7 @@ void Server::handle_client_requests() {
     pthread_t thread_id;
 
     if (pthread_create(&thread_id, nullptr, worker, static_cast<void *>(info)) != 0) {
-      cerr << "Failed to create thread";
+      cerr << "Failed to create thread\n";
       return;
     }
   }

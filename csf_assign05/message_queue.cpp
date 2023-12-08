@@ -19,8 +19,8 @@ MessageQueue::~MessageQueue() {
 void MessageQueue::enqueue(Message *msg) {
   // TODO: put the specified message on the queue
   Guard guard(m_lock);
-  Message *copy = new Message(msg->tag, msg->data);
-  m_messages.push_back(copy);
+  //Message *copy = new Message(msg->tag, msg->data);
+  m_messages.push_back(msg);
   // be sure to notify any thread waiting for a message to be
   // available by calling sem_post
   sem_post(&m_avail);
@@ -46,15 +46,11 @@ Message *MessageQueue::dequeue() {
 
   
   // TODO: remove the next message from the queue, return it
-  Message *msg = nullptr;
-
   Guard guard(m_lock);
+  Message *msg = nullptr;
   if (!m_messages.empty()) {
     msg = m_messages.front();
     m_messages.pop_front();
-  } else {
-    return msg;
-  }
-
+  } 
   return msg;
 }

@@ -112,6 +112,9 @@ bool Connection::receive(Message &msg) {
 
   // get tag and data from buffer
   string s(buffer);
+  while(!s.empty() && isspace(s.back())) {
+    s.pop_back();
+  }
   size_t colon = s.find(":");
   if (colon == string::npos) {
     m_last_result = INVALID_MSG;
@@ -123,6 +126,11 @@ bool Connection::receive(Message &msg) {
 
   if (msg.tag == TAG_ERR) {
     m_last_result = INVALID_MSG;
+    return false;
+  }
+  
+  if (strcmp(msg.tag.c_str(), "err") == 0) {
+    m_last_result = EOF_OR_ERROR;
     return false;
   }
 
