@@ -19,7 +19,6 @@ MessageQueue::~MessageQueue() {
 void MessageQueue::enqueue(Message *msg) {
   // put the specified message on the queue
   Guard guard(m_lock);
-  //Message *copy = new Message(msg->tag, msg->data);
   m_messages.push_back(msg);
   // be sure to notify any thread waiting for a message to be
   // available by calling sem_post

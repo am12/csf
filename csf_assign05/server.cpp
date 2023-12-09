@@ -25,7 +25,7 @@ using std::unique_ptr;
 // add any additional data types that might be helpful
 // for implementing the Server member functions
 
-// Info: keeps track of server and connection information as a group
+// Info keeps track of server and connection information as a group
 struct Info {
   Connection *conn;
   Server *server;
@@ -205,7 +205,7 @@ void *worker(void *arg) {
   Info *info_ptr = static_cast<Info *>(arg);
   unique_ptr<Info> info(info_ptr);
 
-  //read login message (should be tagged either with TAG_SLOGIN or TAG_RLOGIN), send response
+  // read login message (should be tagged either with TAG_SLOGIN or TAG_RLOGIN), send response
   Message login_msg;
   if (!info->conn->receive(login_msg)) {
     if (info->conn->get_last_result() == Connection::INVALID_MSG) {
