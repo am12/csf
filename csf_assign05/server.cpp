@@ -16,6 +16,7 @@
 using std::cerr;
 using std::string;
 using std::to_string;
+using std::unique_ptr;
 
 ////////////////////////////////////////////////////////////////////////
 // Server implementation data types
@@ -41,8 +42,7 @@ struct Info {
 // Client thread functions
 ////////////////////////////////////////////////////////////////////////
 
-/// SENDER AND RECEIVER IMPLEMENTATIONS (START)
-
+// function to handle chatting with the receiver
 void receiver_chat(Connection *conn, Server *server, User *user) {
   Message message;
   Room *room = nullptr;
@@ -100,10 +100,9 @@ void receiver_chat(Connection *conn, Server *server, User *user) {
     room->remove_member(user);
   }
   delete user;
-  delete conn;
 }
 
-
+// function to handle chatting with the sender
 void sender_chat(Connection *conn, Server *server, User *user) {
   Room *room = nullptr;
 
@@ -195,8 +194,6 @@ void sender_chat(Connection *conn, Server *server, User *user) {
   delete user;
 }
 
-/// SENDER AND RECEIVER IMPLEMENTATIONS (END)
-
 namespace {
 
 void *worker(void *arg) {
@@ -206,7 +203,7 @@ void *worker(void *arg) {
   // use a static cast to convert arg from a void* to whatever pointer type describes the object(s) needed
   // to communicate with a client (sender or receiver)
   Info *info_ptr = static_cast<Info *>(arg);
-  std::unique_ptr<Info> info(info_ptr);
+  unique_ptr<Info> info(info_ptr);
 
   //read login message (should be tagged either with TAG_SLOGIN or TAG_RLOGIN), send response
   Message login_msg;
