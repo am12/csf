@@ -21,8 +21,8 @@ using std::to_string;
 // Server implementation data types
 ////////////////////////////////////////////////////////////////////////
 
-// TODO: add any additional data types that might be helpful
-//       for implementing the Server member functions
+// add any additional data types that might be helpful
+// for implementing the Server member functions
 
 // Info: keeps track of server and connection information as a group
 struct Info {
@@ -247,18 +247,18 @@ void *worker(void *arg) {
 
 Server::Server(int port) 
   : m_port(port), m_ssock(-1) {
-  // TODO: initialize mutex
+  // initialize mutex
     pthread_mutex_init(&m_lock, nullptr);
   }
 
 Server::~Server() {
-  // TODO: destroy mutex
+  // destroy mutex
   pthread_mutex_destroy(&m_lock);
 }
 
 bool Server::listen() {
-  // TODO: use open_listenfd to create the server socket, return true
-  //       if successful, false if not
+  // use open_listenfd to create the server socket, return true
+  // if successful, false if not
   string port = to_string(m_port);
   m_ssock = open_listenfd(port.c_str());
   if (m_ssock < 0) {
@@ -269,8 +269,8 @@ bool Server::listen() {
 }
 
 void Server::handle_client_requests() {
-  // TODO: infinite loop calling accept or Accept, starting a new
-  //       pthread for each connected client
+  // infinite loop calling accept or Accept, starting a new
+  // pthread for each connected client
 
   while (1) {
     int clientfd = accept(m_ssock, nullptr, nullptr);
@@ -291,8 +291,8 @@ void Server::handle_client_requests() {
 }
 
 Room *Server::find_or_create_room(const std::string &room_name) {
-  // TODO: return a pointer to the unique Room object representing
-  //       the named chat room, creating a new one if necessary
+  // return a pointer to the unique Room object representing
+  // the named chat room, creating a new one if necessary
   Guard guard(m_lock);
   auto i = m_rooms.find(room_name);
   
